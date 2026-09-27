@@ -15,7 +15,7 @@ Cette version impose une connexion avant l’accès à l’atelier. Les routes d
 
 Les noms des variables de cette application restent ceux ci-dessus, même si l’interface Supabase propose les nouvelles clés publishable/secret. **La clé service_role/secret est exclusivement serveur** : jamais dans GitHub, dans une variable `NEXT_PUBLIC_`, ni dans le navigateur.
 
-Aucune table SQL, migration, règle RLS personnalisée ou bucket n’est nécessaire : les comptes résident dans Supabase Auth. Les droits sont dans `app_metadata`, modifiable uniquement par le serveur privilégié. `user_metadata`, modifiable par les utilisateurs, n’est jamais utilisé pour autoriser un accès.
+Les comptes résident dans Supabase Auth. **Depuis la version 1.2, exécuter aussi `supabase/migrations/001_saves_and_quotas.sql` dans le SQL Editor** pour les sauvegardes et quotas ; voir `SAUVEGARDES-QUOTAS.md`. Aucun bucket n’est nécessaire. Les droits sont dans `app_metadata`, modifiable uniquement par le serveur privilégié. `user_metadata`, modifiable par les utilisateurs, n’est jamais utilisé pour autoriser un accès.
 
 ## 2. Créer ton administrateur depuis ton ordinateur
 
@@ -92,7 +92,7 @@ Aucun e-mail automatique, fournisseur SMTP, invitation externe ou inscription pu
 - **Désactiver** : bloque la connexion et les nouvelles requêtes ; les sessions déjà ouvertes deviennent inutilisables pour l’atelier.
 - **Réactiver** : permet une nouvelle connexion. Les anciens cookies ne sont pas réhabilités.
 - **Réinitialiser le mot de passe** : génère un nouveau mot de passe temporaire et révoque les anciennes sessions. Le compte reste désactivé s’il l’était déjà.
-- **Supprimer** : supprime le compte Supabase Auth. Une confirmation est demandée dans l’interface.
+- **Supprimer** : supprime le compte Supabase Auth et ses sauvegardes de CV. Une confirmation est demandée dans l’interface.
 - Les comptes administrateurs sont protégés : ils ne peuvent pas être désactivés, réinitialisés ou supprimés depuis cette liste. Pour ton propre mot de passe, utiliser **Mon compte**.
 
 Les nouveaux comptes créés dans l’interface sont toujours des utilisateurs ordinaires : on ne peut pas s’attribuer le rôle administrateur dans une requête.
@@ -117,8 +117,8 @@ Cette commande refuse de promouvoir un utilisateur ordinaire : elle réinitialis
 - Une déconnexion ferme toutes les sessions CV-ATS du compte ; un changement ou reset de mot de passe les révoque également.
 - Les actions qui modifient un état refusent les origines absentes ou différentes, en plus du contrôle de session.
 - Les réponses d’API sensibles ne sont pas mises en cache ; les pages privées sont rendues dynamiquement.
-- Les comptes, mots de passe protégés, droits et événements d’authentification sont gérés/persistés par Supabase. La promesse « aucun stockage » concerne désormais **les CV, annonces et résultats**, pas les comptes.
-- Pas d’historique de CV ni d’historique d’analyse. Les comptes autorisés partagent le quota Gemini du propriétaire, sans plafond individuel ajouté dans cette version.
+- Les comptes, mots de passe protégés, droits et événements d’authentification sont gérés/persistés par Supabase. Les versions de CV et leurs annexes sont stockées uniquement sur sauvegarde explicite. Les compteurs de consommation ne contiennent pas les textes analysés.
+- Sauvegardes privées volontaires et supprimables, quotas individuels et budget quotidien partagé : voir `SAUVEGARDES-QUOTAS.md`. Les limites s’appliquent également aux administrateurs.
 
 Conserver les protections et limites d’authentification Supabase. Pour un domaine très exposé, les règles de pare-feu/rate limiting de l’hébergeur peuvent compléter ces contrôles ; l’application ne prétend pas empêcher tout abus par un utilisateur auquel tu as volontairement donné accès.
 

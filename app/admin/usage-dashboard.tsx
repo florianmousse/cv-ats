@@ -1,0 +1,30 @@
+'use client';
+import {useEffect,useState,type FormEvent} from 'react';
+import type {AdminUsage,UserUsage} from '@/lib/data/usage';
+const number=(n:number|null)=>n===null?'non renseigné':n.toLocaleString('fr-FR');
+export function UsageDashboard(){
+ const [usage,setUsage]=useState<AdminUsage|null>(null),[revision,setRevision]=useState(0),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ useEffect(()=>{const controller=new AbortController();async function load(){setLoading(true);try{
+  const r=await fetch('/api/admin/usage',{cache:'no-store',signal:controller.signal});const body=await r.json();if(!r.ok)throw new Error(body.error);setUsage(body.usage);
+ }catch(e){if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Suivi indisponible.');}finally{if(!controller.signal.aborted)setLoading(false);}}
+ void load();return()=>controller.abort();},[revision]);
+ async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();const limit=Number(new FormData(event.currentTarget).get('limit'));setBusy(true);setError('');setNotice('');try{
+  const r=await fetch('/api/admin/usage',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit})});const body=await r.json();if(!r.ok)throw new Error(body.error);setRevision(v=>v+1);setNotice('Budget du site mis à jour. Les compteurs existants sont conservés.');
+ }catch(e){setError(e instanceof Error?e.message:'Modification impossible.');}finally{setBusy(false);}}
+ return <section className="usage-dashboard" aria-busy={loading}><div className="panel-heading"><div><h2>Consommation Gemini</h2><p>Appels suivis par ce site uniquement. Ce tableau n’est ni une facture ni le solde officiel Google.</p></div><button className="secondary-button small" disabled={loading||busy} onClick={()=>{setError('');setRevision(v=>v+1);}}>Actualiser</button></div>
+ <p><a href="https://aistudio.google.com/usage" target="_blank" rel="noreferrer">Ouvrir la consommation officielle dans AI Studio ↗</a> · <a href="https://aistudio.google.com/rate-limit" target="_blank" rel="noreferrer">Voir mes limites Gemini ↗</a></p>
+ {error&&<p className="message error" role="alert">{error}</p>}{notice&&<p className="message success" role="status">{notice}</p>}
+ {loading?<p role="status">Chargement du suivi…</p>:usage&&<><div className="usage-summary"><div><span>Budget interne quotidien</span><strong>{number(usage.dailyUsed)} / {number(usage.dailyLimit)} appels</strong><progress aria-label="Budget quotidien consommé" max={Math.max(1,usage.dailyLimit)} value={Math.min(usage.dailyUsed,Math.max(1,usage.dailyLimit))}/><small>{number(Math.max(0,usage.dailyLimit-usage.dailyUsed))} disponibles · remise à zéro : {new Date(usage.resetAt).toLocaleString('fr-FR')} (minuit Pacifique).</small></div>
+ <form onSubmit={save}><label htmlFor="global-limit">Plafond d’appels par jour pour tout le site</label><div className="button-row"><input key={usage.dailyLimit} id="global-limit" name="limit" type="number" min={0} max={1000000} step={1} defaultValue={usage.dailyLimit} required disabled={busy}/><button className="secondary-button" disabled={busy}>Enregistrer</button></div><small>0 bloque les nouvelles analyses. Choisis ce budget selon ton usage ; il ne synchronise pas les limites Google.</small></form></div>
+ <h3>Ce mois-ci — {usage.month.slice(0,7)} (UTC)</h3>
+ {usage.models.length?<div className="usage-table-wrap"><table className="usage-table"><caption>Consommation enregistrée par modèle depuis l’installation du suivi</caption><thead><tr><th>Modèle</th><th>Appels tentés</th><th>Tokens déclarés</th><th>Détail des tokens</th><th>Suivi incomplet</th></tr></thead><tbody>{usage.models.map(m=><tr key={m.model}><td>{m.model}<small>{m.charged} appels décomptés ou réservés</small></td><td>{number(m.attempted)}<small>{m.failed} analyses échouées</small></td><td>{number(m.tokens)}</td><td>Entrée : {number(m.prompt)}<br/>Sortie : {number(m.output)}<br/>Réflexion : {number(m.thought)}</td><td>{m.unknown} appels sans total de tokens<small>{m.pending} analyses en attente de clôture</small></td></tr>)}</tbody></table></div>:<p>Aucun appel enregistré ce mois-ci.</p>}
+ <p className="auth-footnote">Les tokens sont ceux déclarés par Gemini, pas une estimation du texte. Une réponse absente ou un incident peut laisser un total incomplet. Les appels effectués avec d’autres outils ou clés du même projet ne sont pas visibles ici. Les limites Google par minute et par modèle restent applicables.</p></>}
+ </section>;
+}
+export function QuotaEditor({userId,usage,onSaved}:{userId:string;usage:UserUsage;onSaved:()=>void}){
+ const [limit,setLimit]=useState(String(usage.limit)),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+ async function save(event:FormEvent){event.preventDefault();setBusy(true);setError('');setNotice('');try{
+  const r=await fetch(`/api/admin/users/${userId}/quota`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({limit:Number(limit)})});const body=await r.json();if(!r.ok)throw new Error(body.error);setNotice('Quota enregistré.');onSaved();
+ }catch(e){setError(e instanceof Error?e.message:'Modification impossible.');}finally{setBusy(false);}}
+ return <div className="user-quota"><p><strong>{usage.used} / {usage.limit}</strong> appels ce mois-ci · {Math.max(0,usage.limit-usage.used)} disponibles</p><small>{number(usage.tokens)} tokens déclarés{usage.unknownCalls>0&&` · ${usage.unknownCalls} appels sans total connu`}</small><form onSubmit={save}><label htmlFor={`quota-${userId}`}>Quota mensuel (0 = bloqué)</label><div className="button-row"><input id={`quota-${userId}`} type="number" min={0} max={1000000} step={1} required value={limit} onChange={e=>setLimit(e.target.value)} disabled={busy}/><button disabled={busy} className="secondary-button small">Enregistrer</button></div></form>{error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}</div>;
+}

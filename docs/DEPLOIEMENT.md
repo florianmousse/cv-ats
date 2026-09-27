@@ -67,7 +67,7 @@ Sélectionner l’environnement **Production** et, si souhaité, **Preview**. Ga
 
 10. Cliquer **Deploy**.
 
-L’application utilise des fonctions Node.js. Supabase Auth est utilisé pour les comptes ; aucune table SQL personnalisée, aucun stockage Blob, aucun bucket et aucun service Cloudflare ne sont nécessaires. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent uniquement au script local.
+L’application utilise des fonctions Node.js. Supabase Auth est utilisé pour les comptes. **Exécuter `supabase/migrations/001_saves_and_quotas.sql` dans le SQL Editor du projet Supabase avant le déploiement** : cinq tables et des fonctions sécurisées gèrent les sauvegardes et quotas. Voir `SAUVEGARDES-QUOTAS.md`. Aucun stockage Blob, bucket ou service Cloudflare n’est nécessaire. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent uniquement au script local.
 
 ## 5. Vérifier après déploiement
 
@@ -92,6 +92,8 @@ Dans **Project → Settings → Environment Variables**, modifier ou ajouter la 
 | Compte non autorisé | Créer le compte depuis le script administrateur ou l’interface `/admin`, pas simplement depuis le tableau de bord Supabase. |
 | Session révoquée / expirée | Se reconnecter ; si le compte est désactivé, demander sa réactivation à l’administrateur. |
 | IA non activée | Ajouter `GEMINI_API_KEY` dans le bon environnement puis redéployer. |
+| Quota CV-ATS atteint | Vérifier le plafond mensuel de la personne et le budget quotidien du site dans `/admin`. Les compteurs ne sont pas remis à zéro par une modification de plafond. |
+| Sauvegardes et quotas indisponibles | Exécuter la migration SQL complète dans le bon projet Supabase et vérifier les clés serveur. |
 | Quota Gemini atteint / HTTP 429 | Consulter le quota AI Studio, attendre sa réinitialisation, vérifier l’éligibilité du modèle. Ne pas lancer des tentatives en boucle. |
 | Modèle indisponible / HTTP 404 | Choisir un modèle accessible, modifier `GEMINI_MODEL`, redéployer. |
 | Gemini refuse la requête | Vérifier la clé, les autorisations du projet et l’accès au modèle. |

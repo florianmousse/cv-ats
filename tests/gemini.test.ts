@@ -59,7 +59,20 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
   const metadata={cvats:true,cvats_role:'member',enabled:true,access_version:'v1'};
   const token='header.'+Buffer.from(JSON.stringify({app_metadata:metadata})).toString('base64url')+'.signature';
   const authUser={id:'00000000-0000-4000-8000-000000000001',email:'test@example.com',app_metadata:metadata};
-  const stub=(fn:()=>Response)=>(async(url:RequestInfo|URL)=>String(url).startsWith('https://auth.example.test')?Response.json(authUser):fn()) as typeof fetch;
+  let ordinal=0;const events:string[]=[];const reported:Array<Record<string,unknown>>=[];
+  const stub=(fn:()=>Response)=>(async(url:RequestInfo|URL,init?:RequestInit)=>{
+    const path=new URL(String(url)).pathname;
+    if(path==='/auth/v1/user')return Response.json(authUser);
+    if(path.includes('/rpc/')){
+      const name=path.split('/').pop()!;events.push(name);const args=JSON.parse(String(init?.body));
+      if(name==='cvats_reserve'){assert.equal(args.p_user,authUser.id);ordinal=0;return Response.json('00000000-0000-4000-8000-000000000009');}
+      if(name==='cvats_start_call')return Response.json(++ordinal);
+      if(name==='cvats_record_call')reported.push(args);
+      if(name==='cvats_finish')assert.ok(args.p_run);
+      return Response.json(null);
+    }
+    events.push('gemini');return fn();
+  }) as typeof fetch;
   const previousModel = process.env.GEMINI_MODEL;
   const realFetch = globalThis.fetch;
   const request = (mode: string, job = '') => new Request('https://cv-ats.example/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin:'https://cv-ats.example',Cookie:cookieName()+'='+token }, body: JSON.stringify({ mode, cv: toPlainText(fixture), job }) });
@@ -80,6 +93,10 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     const result = await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'));
     assert.equal(result.status, 200);
     assert.equal(count, 2);
+    assert.equal(events.filter(e=>e==='gemini').length,3);
+    assert.equal(reported.length,3);
+    for(let i=0;i<events.length;i++)if(events[i]==='gemini')assert.equal(events[i-1],'cvats_start_call');
+    assert.equal(events.at(-1),'cvats_finish');
     assert.deepEqual((await result.json()).data, fixture);
     count = 0;
     globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: false, titres: labels }));

@@ -2,7 +2,7 @@
 
 ## Flux
 
-1. `app/page.tsx` vérifie la session côté serveur. Le composant `components/workspace.tsx` conserve les textes et résultats uniquement dans l’état React.
+1. `app/page.tsx` vérifie la session côté serveur. Le composant `components/workspace.tsx` conserve les textes et résultats dans l’état React jusqu’à une sauvegarde volontaire via `components/saved-cvs.tsx`.
 2. Les routes d’analyse/import vérifient le jeton auprès de Supabase et les droits actuels avant toute extraction ou génération. L’import envoie un fichier à `POST /api/import`. Le serveur lit un corps borné, valide le type, extrait le texte en mémoire avec unpdf ou Mammoth et retourne le texte. Aucun fichier n’est envoyé à Gemini.
 3. Le scan/optimisation envoie le texte à `POST /api/analyze`.
 4. La route valide les entrées et appelle `askGemini` avec les consignes et les données séparées. Les textes utilisateur sont explicitement traités comme des données non fiables.
@@ -50,3 +50,20 @@ Aucun SDK Gemini n’est nécessaire : la requête HTTPS Gemini est faite avec `
 Supabase Auth conserve les comptes. Les métadonnées serveur `app_metadata` contiennent `cvats`, `cvats_role`, `enabled`, `must_change_password` et `access_version`. Le rôle public `user_metadata` est ignoré. Chaque API protégée valide le jeton via `getUser`, puis compare ses métadonnées de version avec les valeurs actuelles. Le client ne reçoit ni clé Gemini, ni clé Supabase privilégiée, ni refresh token.
 
 La déconnexion, la désactivation/réactivation et les changements de mot de passe changent la version d’accès. Une session ancienne est donc refusée à la prochaine requête, même si son JWT n’est pas encore expiré. La session en cookie dure au maximum une heure ; il n’y a pas de renouvellement automatique.
+
+
+## Sauvegardes et consommation (1.2)
+
+- `supabase/migrations/001_saves_and_quotas.sql` : tables, RLS et fonctions transactionnelles.
+- `lib/data/saves.ts`, `/api/cvs`, `/api/cvs/[id]` : snapshots volontaires validés, accès par jeton utilisateur sous RLS et filtre propriétaire explicite.
+- `lib/data/usage.ts` : réservations, suivi de chaque requête fournisseur et clôture. Les réponses Gemini sont observées avant parsing/validation, audit compris. Seules les métadonnées sont enregistrées.
+- `/api/usage` : quota de la personne connectée uniquement.
+- `/api/admin/usage`, `/api/admin/users/[id]/quota` : tableau global, budget quotidien et quotas individuels ; contrôle du rôle admin puis RPC privilégiée.
+- `components/usage-card.tsx`, `app/admin/usage-dashboard.tsx` : interfaces et affichage des limites du suivi.
+- `lib/docx.ts` : export Word côté navigateur, à la demande, sans API ni consommation Gemini.
+
+Flux d’analyse : authentification/droits → validation des entrées → réservation atomique (1 ou 2 appels) → enregistrement de tentative avant chaque `fetch` → stockage des métadonnées de réponse → validation/audit → clôture et libération des seuls appels non tentés. L’authentification est en pratique vérifiée avant la lecture du corps, afin de refuser tôt les visiteurs anonymes. Une erreur de réservation bloque l’IA. Un crash laisse une réservation prudente.
+
+Les fonctions de comptage sont réservées à `service_role`, jamais à un jeton utilisateur. Les réservations se verrouillent sur la ligne de paramètres, commune à toutes les instances Vercel ; aucun quota n’est fondé sur une Map mémoire. Pour modifier les valeurs de départ ou les unités/périodes, créer une nouvelle migration explicite et adapter les interfaces/documentations ; ne pas modifier silencieusement des compteurs existants.
+
+Voir `SAUVEGARDES-QUOTAS.md` pour les schémas, règles de période, données conservées et limites du suivi Google.

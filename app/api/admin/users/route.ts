@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/session';
 import { adminClient } from '@/lib/auth/supabase';
+import { userUsage } from '@/lib/data/usage';
 import { publicAccount } from '@/lib/auth/admin';
 import { authError, bodyOf, emailSchema } from '@/lib/auth/validation';
 import { checkOrigin, json, PublicError } from '@/lib/http';
@@ -12,7 +13,8 @@ export async function GET(req: Request) {
     const page = z.coerce.number().int().min(1).max(10000).parse(new URL(req.url).searchParams.get('page') || 1);
     const { data, error } = await adminClient().auth.admin.listUsers({ page, perPage: 50 });
     if (error) throw new PublicError('Impossible de charger les comptes.', 503);
-    return json({ users: data.users.filter(u => u.app_metadata.cvats === true).map(publicAccount), hasMore: data.users.length === 50 });
+    const users=data.users.filter(u => u.app_metadata.cvats === true).map(publicAccount);
+    return json({ users, usage:await userUsage(users.map(u=>u.id)), hasMore: data.users.length === 50 });
   } catch (error) { return authError(error); }
 }
 export async function POST(req: Request) {

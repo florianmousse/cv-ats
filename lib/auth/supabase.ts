@@ -17,3 +17,9 @@ const options = {
 };
 export function authClient() { const s = settings(); return createClient(s.url, s.anon, options); }
 export function adminClient() { const s = settings(); return createClient(s.url, s.admin, options); }
+
+/** User JWT keeps saved CV reads/deletes under PostgreSQL RLS. */
+export function userDataClient(token: string) {
+  const s = settings();
+  return createClient(s.url, s.anon, { ...options, global: { ...options.global, headers: { Authorization: `Bearer ${token}` } } });
+}

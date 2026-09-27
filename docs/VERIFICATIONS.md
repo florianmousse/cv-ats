@@ -1,24 +1,51 @@
-# Vérifications
+# Vérifications — version 1.2
 
 Vérifications effectuées pour cette archive :
 
-- `npm run build` : compilation Next.js de production réussie, pages privées, connexion, compte, administration et routes API détectées.
-- Serveur de production démarré localement : `/`, `/admin` et `/compte` redirigent vers la connexion ; `/connexion` répond 200 ; les API analyse, import et administration refusent les requêtes anonymes avec 401.
-- `npm run typecheck` et `npm run lint` : vérification des types et du code.
-- `npm test` : douze groupes de tests passent : Gemini, validation et audit, blocage des visiteurs anonymes, contrôle du rôle administrateur, comptes désactivés, révocation des sessions, changement obligatoire du mot de passe, cookies et protection contre les requêtes provenant d’un autre site.
-- Les tests remplacent explicitement les réponses Supabase et Gemini dans le processus de test ; l’application livrée ne contient aucun mode factice et ne retourne pas ces données aux visiteurs.
-- Les trois exports PDF et l’extraction PDF/DOCX sont conservés de la version précédemment vérifiée : texte extrait, PDF sans texte détecté, polices et rendu contrôlés. La limite d’import est adaptée de 5 à 4 Mo pour Vercel.
+- `npm test` : **18 groupes de tests passent**.
+- `npm run typecheck`, `npm run lint` et `npm run build` : types, lint et compilation de production réussis.
+- Serveur de production lancé localement : `/`, `/admin` et `/compte` redirigent vers la connexion ; `/connexion` répond 200. Sept accès API anonymes couvrant les sauvegardes, quotas et analyses sont refusés avec 401 et `Cache-Control: no-store`.
 
-**Non testé sans tes accès :** connexion à ton véritable projet Supabase, création et gestion de tes comptes réels, appel réel à Gemini avec ta clé, quotas de ton projet et déploiement effectif sur ton compte Vercel. Ces étapes sont à vérifier après configuration. Aucune clé réelle n’est incluse dans le ZIP.
+## Authentification et API
 
-Pour relancer les contrôles :
+Les réponses réseau Supabase/Gemini sont simulées dans les tests uniquement. Les contrôles vérifient notamment : visiteurs anonymes, séparation utilisateur/admin, comptes désactivés ou révoqués, premier changement de mot de passe obligatoire, cookies, origines, absence d’élévation de rôle, accès aux sauvegardes avec le jeton utilisateur plutôt que la clé privilégiée, filtre explicite du propriétaire et refus d’un changement de propriétaire dans le corps JSON.
+
+Les tests vérifient qu’aucun appel Gemini n’a lieu lorsque la réservation de quota est refusée ou indisponible. Le suivi des tokens est contrôlé pour une réponse valide, une erreur fournisseur et une erreur réseau. Les appels de génération **et** d’audit passent par le compteur, avec persistance de la tentative avant l’appel.
+
+## Migration et droits PostgreSQL
+
+Le fichier SQL réel est exécuté dans **PGlite**, moteur PostgreSQL embarqué en mémoire. Seules les fonctions de contexte Auth Supabase et la table minimale des utilisateurs sont simulées. Aucun projet Supabase externe n’est utilisé.
+
+Les tests couvrent :
+
+- exécution de la migration et réexécution sans destruction ;
+- sauvegarde, isolation RLS entre deux comptes, impossibilité de supprimer le CV d’autrui ;
+- jeton révoqué, compte désactivé, limite de 20 sauvegardes ;
+- impossibilité pour un utilisateur d’appeler les fonctions privilégiées ou de lire les tables de comptage ;
+- réservation de deux appels, plafond individuel, budget partagé, libération de l’audit non tenté ;
+- décompte d’un appel tenté en erreur, idempotence du suivi et de la clôture ;
+- demandes concurrentes soumises au moteur : seulement deux admissions pour deux emplacements disponibles ;
+- réservations non clôturées conservées, exclusion des anciennes périodes, limite sur 60 secondes ;
+- suppression des sauvegardes avec le compte sans disparition de la consommation globale.
+
+PGlite n’est pas un déploiement Supabase réel ni un test de charge multi-instance Vercel : l’intégration au projet de production reste à vérifier après migration.
+
+## Exports
+
+Le nouveau DOCX est généré puis relu avec Mammoth. Le texte, les accents, les dates et les puces sont retrouvés. Le XML ne contient ni tableau ni zone de texte flottante. Il n’y a pas d’appel IA pour cet export.
+
+Les trois styles PDF et l’import PDF/DOCX existants sont conservés de la version précédemment vérifiée : extraction de texte, PDF sans texte détecté, polices et rendu contrôlés. Cette mise à jour ne change pas leur moteur. Les nouveaux écrans n’ont pas fait l’objet d’un contrôle visuel automatisé dans un navigateur connecté à un véritable compte.
+
+**Non testé sans tes accès :** exécution de la migration dans ton projet Supabase hébergé, tes comptes réels, appel Gemini avec ta clé, valeurs/quotas de ton projet Google, déploiement sur ton compte Vercel. Aucun secret réel n’est inclus dans le ZIP. L’application livrée n’a aucun mode factice ni contournement d’authentification.
+
+Pour relancer :
 
 ```bash
 npm ci
+npm run build
 npm test
 npm run typecheck
 npm run lint
-npm run build
 ```
 
-Si `npm run typecheck` est exécuté avant le premier démarrage/compilation, Next.js peut ne pas avoir encore créé `next-env.d.ts` : exécuter d’abord `npm run build` ou `npm run dev`.
+Le premier build crée notamment `next-env.d.ts`. Les étapes de vérification fonctionnelle après installation sont dans `SAUVEGARDES-QUOTAS.md`.
