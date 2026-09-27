@@ -1,3 +1,4 @@
+import { requireUser } from '@/lib/auth/session';
 import {extractText,getDocumentProxy} from 'unpdf';
 import mammoth from 'mammoth/mammoth.browser';
 import {unzipSync} from 'fflate';
@@ -8,6 +9,7 @@ const MAX=4*1024*1024;
 export async function POST(req:Request){
  try{
   checkOrigin(req);
+    await requireUser(req);
   const bytes=await readLimited(req,MAX+65536);
   const form=await new Response(bytes,{headers:{'Content-Type':req.headers.get('content-type')||''}}).formData();
   const file=form.get('file');if(!(file instanceof File))throw new PublicError('Sélectionne un fichier PDF ou DOCX.');

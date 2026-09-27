@@ -1,3 +1,4 @@
+import { requireUser } from '@/lib/auth/session';
 import { askGemini, DEFAULT_MODEL } from '@/lib/gemini';
 export const runtime='nodejs';
 export const maxDuration=120;
@@ -11,6 +12,7 @@ const scan=`Analyse factuellement le TEXTE du CV. Réponds en français. Score i
 export async function POST(req:Request){
   try{
     checkOrigin(req);
+    await requireUser(req);
     let body;try{body=JSON.parse(new TextDecoder().decode(await readLimited(req,300000)));}catch(e){if(e instanceof PublicError)throw e;throw new PublicError('La requête est illisible.');}
     const parsed=inputSchema.safeParse(body);if(!parsed.success)throw new PublicError('Ajoute un CV de 30 à 40 000 caractères et une annonce de 30 000 caractères maximum.');
     const {mode,cv,job}=parsed.data;if(mode==='optimize'&&job.length<30)throw new PublicError('Ajoute une annonce d’au moins 30 caractères pour optimiser ton CV.');

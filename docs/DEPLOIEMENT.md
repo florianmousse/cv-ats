@@ -1,5 +1,9 @@
 # Publier CV-ATS sur GitHub puis Vercel
 
+## Avant de déployer : configurer l’accès privé
+
+Suivre **[AUTHENTIFICATION.md](AUTHENTIFICATION.md)** : créer un projet Supabase, désactiver les inscriptions publiques, renseigner les trois variables Supabase et créer ton administrateur avec `npm run admin:create`. Aucun visiteur ne peut utiliser l’atelier sans un compte autorisé.
+
 ## 1. Extraire le ZIP
 
 Décompresser l’archive. Le dossier `cv-ats` contient `package.json`, `app`, `lib`, `public` et cette documentation. C’est **son contenu** qui doit être à la racine du dépôt GitHub.
@@ -55,16 +59,22 @@ Remplacer `TON-COMPTE` par le compte réel. Si tu téléverses par l’interface
 | --- | --- | --- |
 | `GEMINI_API_KEY` | Ta clé Google AI Studio | Oui |
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` ou un modèle compatible accessible à ton projet | Non, valeur par défaut intégrée |
+| `SUPABASE_URL` | URL du projet Auth | Oui |
+| `SUPABASE_ANON_KEY` | Clé anon ou publishable | Oui |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clé service_role ou secret, privée côté serveur | Oui |
 
 Sélectionner l’environnement **Production** et, si souhaité, **Preview**. Garder la clé en variable sensible lorsque l’option est proposée. Aucune clé n’est nécessaire pour compiler : elle n’est lue qu’au moment d’un appel d’analyse.
 
 10. Cliquer **Deploy**.
 
-L’application utilise des fonctions Node.js. Aucun stockage Blob, aucune base Supabase, aucun bucket et aucun service Cloudflare ne sont nécessaires.
+L’application utilise des fonctions Node.js. Supabase Auth est utilisé pour les comptes ; aucune table SQL personnalisée, aucun stockage Blob, aucun bucket et aucun service Cloudflare ne sont nécessaires. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent uniquement au script local.
 
 ## 5. Vérifier après déploiement
 
-- Ouvrir le site, importer un petit PDF ou DOCX non confidentiel de test.
+- Ouvrir le site, se connecter en tant qu’administrateur et changer le mot de passe temporaire.
+- Importer un petit PDF ou DOCX non confidentiel de test.
+- Vérifier qu’une fenêtre privée non connectée n’accède pas à l’atelier.
+- Tester la création puis la désactivation d’un compte utilisateur.
 - Vérifier le texte extrait.
 - Lancer un scan, puis une optimisation avec une annonce.
 - Vérifier la fidélité des informations et tester les trois exports PDF.
@@ -78,6 +88,9 @@ Dans **Project → Settings → Environment Variables**, modifier ou ajouter la 
 
 | Message / symptôme | Action |
 | --- | --- |
+| Accès privé non configuré | Ajouter les trois variables Supabase puis redéployer. |
+| Compte non autorisé | Créer le compte depuis le script administrateur ou l’interface `/admin`, pas simplement depuis le tableau de bord Supabase. |
+| Session révoquée / expirée | Se reconnecter ; si le compte est désactivé, demander sa réactivation à l’administrateur. |
 | IA non activée | Ajouter `GEMINI_API_KEY` dans le bon environnement puis redéployer. |
 | Quota Gemini atteint / HTTP 429 | Consulter le quota AI Studio, attendre sa réinitialisation, vérifier l’éligibilité du modèle. Ne pas lancer des tentatives en boucle. |
 | Modèle indisponible / HTTP 404 | Choisir un modèle accessible, modifier `GEMINI_MODEL`, redéployer. |

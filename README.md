@@ -1,6 +1,12 @@
 # CV-ATS — Gemini, GitHub et Vercel
 
-Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard**, autonome : aucun compte ChatGPT, plugin, Cloudflare ou base de données requis.
+Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Aucune base de CV : seuls les comptes et droits d’accès sont persistés via Supabase.
+
+## Nouveauté : accès privé obligatoire
+
+L’atelier et les API sont réservés aux comptes autorisés. L’administrateur crée les utilisateurs, désactive/réactive leurs accès, réinitialise leurs mots de passe et supprime les comptes. Il n’y a aucune inscription publique et aucun e-mail envoyé automatiquement.
+
+**Commencer par [docs/AUTHENTIFICATION.md](docs/AUTHENTIFICATION.md)** pour configurer Supabase et créer ton administrateur. Sans configuration, l’accès reste fermé.
 
 ## Démarrage rapide
 
@@ -16,6 +22,8 @@ Copier `.env.example` vers `.env.local` et renseigner la clé :
 GEMINI_API_KEY=ta_cle_personnelle
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
+
+Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification.
 
 Ne jamais mettre de clé dans GitHub. `.env.local` est ignoré par Git. Ne pas préfixer la variable par `NEXT_PUBLIC_`.
 
@@ -55,7 +63,7 @@ Gemini dispose de quotas gratuits pour certains modèles/projets, avec des limit
 
 **Attention pour une publication en France / dans l’EEE : les conditions Gemini consultées le 27 septembre 2026 imposent l’utilisation des services payants lorsqu’un client API est mis à disposition d’utilisateurs dans l’EEE, en Suisse ou au Royaume-Uni.** La présence d’un quota gratuit ne signifie donc pas qu’une application publique peut être exploitée gratuitement dans ces zones. Vérifier les conditions du projet avant l’ouverture aux utilisateurs.
 
-CV-ATS ne stocke pas les CV, annonces, fichiers ou résultats : pas de base, pas d’historique, pas de stockage navigateur, pas de journalisation des contenus. L’extraction s’effectue en mémoire et les endpoints utilisent `Cache-Control: no-store`. Les textes restent dans l’onglet jusqu’à fermeture ou actualisation.
+CV-ATS ne stocke pas les CV, annonces, fichiers ou résultats : pas de base de CV, pas d’historique, pas de stockage navigateur des contenus, pas de journalisation des contenus. Les comptes et droits sont stockés par Supabase Auth ; la connexion utilise un cookie HttpOnly, et les événements d’authentification relèvent de Supabase. L’extraction s’effectue en mémoire et les endpoints utilisent `Cache-Control: no-store`. Les textes restent dans l’onglet jusqu’à fermeture ou actualisation.
 
 Pour analyser, CV et annonce sont transmis à **Google Gemini**. L’application n’utilise ni Files API, ni cache explicite, ni conversation conservée. Cela ne constitue pas une garantie de conservation zéro chez Google : les conditions du fournisseur, la région et l’offre s’appliquent. Les règles d’utilisation des données des services payants s’appliquent également au quota gratuit pour les utilisateurs situés dans l’EEE, en Suisse ou au Royaume-Uni, selon les conditions consultées. Ne pas ajouter d’analytics, de capture de corps de requêtes ou de logs de contenu. Vercel conserve sa propre télémétrie technique selon son offre.
 
@@ -66,7 +74,7 @@ Pour analyser, CV et annonce sont transmis à **Google Gemini**. L’application
 - Le score est une estimation textuelle, pas celui d’un ATS commercial ni une probabilité d’embauche. La mise en page d’origine n’est pas évaluée après extraction.
 - Relire l’extraction, notamment pour un PDF partiellement scanné.
 - Les polices fournies couvrent notamment le français et les alphabets latin, grec et cyrillique. Ajouter des polices adaptées pour d’autres écritures.
-- Pas de compte ni de protection applicative contre les abus : un déploiement accessible publiquement permet aux visiteurs de consommer le quota du propriétaire. Pour un usage personnel, garder la protection de déploiement Vercel activée si disponible ; pour une ouverture publique, configurer une limitation des requêtes au niveau de l’hébergement.
+- Les visiteurs non connectés et les comptes non autorisés sont bloqués avant tout appel à Gemini. Les utilisateurs autorisés partagent ton quota : aucun plafond individuel n’est intégré. Une requête déjà en cours peut terminer après désactivation. Une protection d’accès Vercel peut être conservée en complément.
 
 ## Vérifications locales
 
@@ -81,6 +89,7 @@ Les tests Gemini utilisent des réponses simulées uniquement dans les fichiers 
 
 ## Documentation
 
+- [Authentification, administrateur et gestion des utilisateurs](docs/AUTHENTIFICATION.md)
 - [Déploiement GitHub et Vercel](docs/DEPLOIEMENT.md)
 - [Architecture et points de modification](docs/ARCHITECTURE.md)
 - [Vérifications et limites du test](docs/VERIFICATIONS.md)

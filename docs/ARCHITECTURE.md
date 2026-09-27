@@ -2,8 +2,8 @@
 
 ## Flux
 
-1. `app/page.tsx` conserve les textes et résultats uniquement dans l’état React.
-2. L’import envoie un fichier à `POST /api/import`. Le serveur lit un corps borné, valide le type, extrait le texte en mémoire avec unpdf ou Mammoth et retourne le texte. Aucun fichier n’est envoyé à Gemini.
+1. `app/page.tsx` vérifie la session côté serveur. Le composant `components/workspace.tsx` conserve les textes et résultats uniquement dans l’état React.
+2. Les routes d’analyse/import vérifient le jeton auprès de Supabase et les droits actuels avant toute extraction ou génération. L’import envoie un fichier à `POST /api/import`. Le serveur lit un corps borné, valide le type, extrait le texte en mémoire avec unpdf ou Mammoth et retourne le texte. Aucun fichier n’est envoyé à Gemini.
 3. Le scan/optimisation envoie le texte à `POST /api/analyze`.
 4. La route valide les entrées et appelle `askGemini` avec les consignes et les données séparées. Les textes utilisateur sont explicitement traités comme des données non fiables.
 5. Gemini renvoie du JSON. `lib/cv.ts` extrait un objet même entouré de texte, puis Zod valide le schéma.
@@ -14,7 +14,13 @@
 
 | Fichier | Rôle |
 | --- | --- |
-| `app/page.tsx` | Saisie, import, états de chargement/erreur, scan, résultat, copie, sélection du style. |
+| `app/page.tsx` | Protection serveur de l’atelier. |
+| `components/workspace.tsx` | Saisie, import, scan, copie et export, état React en mémoire. |
+| `app/connexion/`, `app/compte/`, `app/admin/` | Écrans de connexion, changement de mot de passe et administration. |
+| `app/api/auth/` | Connexion, déconnexion et changement de mot de passe. |
+| `app/api/admin/users/` | Création, pagination, activation/désactivation, reset et suppression. |
+| `lib/auth/` | Clients Supabase serveur, sessions, droits, contrôles de page et validation. |
+| `scripts/create-admin.mjs` | Initialisation/récupération locale d’un administrateur, sans endpoint public. |
 | `app/globals.css` | Design et règles responsive. |
 | `app/layout.tsx` | Langue française et métadonnées. |
 | `app/api/import/route.ts` | Extraction PDF/DOCX, 4 Mo max, 25 pages PDF, limite DOCX décompressé. |
@@ -37,4 +43,10 @@
 - Modifier un style PDF : `createDefinition` dans `lib/pdf.ts`. Ne pas ajouter de rasterisation, colonne, tableau ou image.
 - Modifier la limite d’import : synchroniser client et serveur, sans dépasser la limite de charge utile de l’hébergeur.
 
-Aucun SDK fournisseur n’est nécessaire : la requête HTTPS Gemini est faite avec `fetch`. Aucune clé ne se trouve dans le code client. Les erreurs fournisseur brutes ne sont ni affichées ni journalisées.
+Aucun SDK Gemini n’est nécessaire : la requête HTTPS Gemini est faite avec `fetch`. Aucune clé ne se trouve dans le code client. Les erreurs fournisseur brutes ne sont ni affichées ni journalisées.
+
+## Modèle d’accès
+
+Supabase Auth conserve les comptes. Les métadonnées serveur `app_metadata` contiennent `cvats`, `cvats_role`, `enabled`, `must_change_password` et `access_version`. Le rôle public `user_metadata` est ignoré. Chaque API protégée valide le jeton via `getUser`, puis compare ses métadonnées de version avec les valeurs actuelles. Le client ne reçoit ni clé Gemini, ni clé Supabase privilégiée, ni refresh token.
+
+La déconnexion, la désactivation/réactivation et les changements de mot de passe changent la version d’accès. Une session ancienne est donc refusée à la prochaine requête, même si son JWT n’est pas encore expiré. La session en cookie dure au maximum une heure ; il n’y a pas de renouvellement automatique.

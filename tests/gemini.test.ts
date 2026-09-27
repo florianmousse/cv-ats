@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { askGemini } from '../lib/gemini';
 import { parseModelJSON, cvSchema, labels, toPlainText, assertGroundedFields } from '../lib/cv';
 import { POST } from '../app/api/analyze/route';
+import { cookieName } from '../lib/auth/session';
 
 const fixture = {
   nom: 'Élodie Exemple', titre: 'Développeuse web',
@@ -53,31 +54,39 @@ test('CV validation tolerates surrounding prose but rejects invented facts', () 
 
 test('Analysis route: missing key, scan without job, optimization and rejected audit', async () => {
   const previousKey = process.env.GEMINI_API_KEY;
+  const previousAuth = [process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, process.env.SUPABASE_SERVICE_ROLE_KEY];
+  process.env.SUPABASE_URL='https://auth.example.test'; process.env.SUPABASE_ANON_KEY='test-anon'; process.env.SUPABASE_SERVICE_ROLE_KEY='test-service';
+  const metadata={cvats:true,cvats_role:'member',enabled:true,access_version:'v1'};
+  const token='header.'+Buffer.from(JSON.stringify({app_metadata:metadata})).toString('base64url')+'.signature';
+  const authUser={id:'00000000-0000-4000-8000-000000000001',email:'test@example.com',app_metadata:metadata};
+  const stub=(fn:()=>Response)=>(async(url:RequestInfo|URL)=>String(url).startsWith('https://auth.example.test')?Response.json(authUser):fn()) as typeof fetch;
   const previousModel = process.env.GEMINI_MODEL;
   const realFetch = globalThis.fetch;
-  const request = (mode: string, job = '') => new Request('https://cv-ats.example/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode, cv: toPlainText(fixture), job }) });
+  const request = (mode: string, job = '') => new Request('https://cv-ats.example/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin:'https://cv-ats.example',Cookie:cookieName()+'='+token }, body: JSON.stringify({ mode, cv: toPlainText(fixture), job }) });
   try {
     delete process.env.GEMINI_API_KEY;
+    globalThis.fetch=stub(()=>{throw new Error('Unexpected Gemini request');});
     const unavailable = await POST(request('scan'));
     assert.equal(unavailable.status, 503);
     assert.match(unavailable.headers.get('cache-control') ?? '', /no-store/);
     process.env.GEMINI_API_KEY = settings.apiKey;
     process.env.GEMINI_MODEL = settings.model;
-    globalThis.fetch = async () => success({ score: 75, pointsForts: ['Texte lisible'], problemes: [], motsClesManquants: ['Python'], recommandations: [] });
+    globalThis.fetch = stub(() => success({ score: 75, pointsForts: ['Texte lisible'], problemes: [], motsClesManquants: ['Python'], recommandations: [] }));
     const scan = await POST(request('scan'));
     assert.equal(scan.status, 200);
     assert.deepEqual((await scan.json()).data.motsClesManquants, []);
     let count = 0;
-    globalThis.fetch = async () => success(++count === 1 ? fixture : { fidele: true, titres: labels });
+    globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: true, titres: labels }));
     const result = await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'));
     assert.equal(result.status, 200);
     assert.equal(count, 2);
     assert.deepEqual((await result.json()).data, fixture);
     count = 0;
-    globalThis.fetch = async () => success(++count === 1 ? fixture : { fidele: false, titres: labels });
+    globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: false, titres: labels }));
     assert.equal((await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'))).status, 422);
   } finally {
     globalThis.fetch = realFetch;
+    ['SUPABASE_URL','SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'].forEach((key,i)=>{if(previousAuth[i]===undefined)delete process.env[key];else process.env[key]=previousAuth[i];});
     if (previousKey === undefined) delete process.env.GEMINI_API_KEY; else process.env.GEMINI_API_KEY = previousKey;
     if (previousModel === undefined) delete process.env.GEMINI_MODEL; else process.env.GEMINI_MODEL = previousModel;
   }
