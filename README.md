@@ -1,10 +1,10 @@
 # CV-ATS — Gemini, GitHub et Vercel
 
-Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et quotas par utilisateur dans Supabase.
+Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et clés Gemini personnelles chiffrées dans Supabase. Aucun quota IA interne.
 
-## Version 1.2 : sauvegardes et quotas
+## Version 1.3 : clés personnelles, sans quotas internes
 
-**Si ton site fonctionne déjà : suivre [docs/SAUVEGARDES-QUOTAS.md](docs/SAUVEGARDES-QUOTAS.md)**. Exécuter la migration SQL fournie dans ton projet Supabase avant de redéployer. Aucune nouvelle clé nécessaire. Le budget initial est de 100 appels par utilisateur/mois et 100 appels pour le site/jour, réglables dans l’admin.
+**Pour mettre à jour ton site : suivre [docs/CLES-PERSONNELLES.md](docs/CLES-PERSONNELLES.md)**. Appliquer la migration 002, configurer `API_KEY_ENCRYPTION_SECRET` sur Vercel, puis redéployer. Les personnes peuvent enregistrer leur clé Gemini dans Mon compte. Elle est prioritaire, sans repli vers la clé du site en cas d’erreur. Les anciennes limites quotidiennes, mensuelles et de fréquence IA sont supprimées pour tous les comptes.
 
 ## Accès privé obligatoire
 
@@ -27,7 +27,7 @@ GEMINI_API_KEY=ta_cle_personnelle
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
-Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification. Exécuter aussi `supabase/migrations/001_saves_and_quotas.sql` dans le SQL Editor Supabase avant la première analyse.
+Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification. Sur une installation neuve, exécuter les migrations SQL 001 puis 002 dans le SQL Editor Supabase avant la première analyse. Configurer `API_KEY_ENCRYPTION_SECRET` pour les clés personnelles ; voir le guide dédié.
 
 Ne jamais mettre de clé dans GitHub. `.env.local` est ignoré par Git. Ne pas préfixer la variable par `NEXT_PUBLIC_`.
 
@@ -56,7 +56,8 @@ Suivre **[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)** : création de clé Gemini
 - Optimisation avec Gemini : JSON validé par Zod, contrôle des champs factuels et des chiffres, puis second appel de vérification de fidélité. Les réponses non conformes sont refusées.
 - Scan : score indicatif sur le texte, points forts, problèmes, recommandations et mots-clés manquants. Les prompts prennent en compte les synonymes réellement équivalents.
 - Jusqu’à 20 sauvegardes privées par compte : enregistrer une nouvelle version, charger, supprimer ; annonce et résultat optimisé facultatifs.
-- Quotas persistants réservés avant Gemini ; compteurs individuels et budget partagé modifiables dans l’admin.
+- Clé personnelle chiffrée, modèle personnel facultatif, clé partagée uniquement en l’absence de clé personnelle.
+- Aucun quota IA interne : statistiques par compte et par source de clé, sans réglage de plafond.
 - Tokens réellement déclarés par Gemini, avec indication des appels sans total connu et liens AI Studio.
 - Export Word modifiable dans le navigateur, sans appel IA supplémentaire.
 - Copie en texte brut et téléchargement PDF : Moderne sobre, Finance classique, Minimal aéré.
@@ -71,7 +72,7 @@ Gemini dispose de quotas gratuits pour certains modèles/projets, avec des limit
 
 **Attention pour une publication en France / dans l’EEE : les conditions Gemini consultées le 27 septembre 2026 imposent l’utilisation des services payants lorsqu’un client API est mis à disposition d’utilisateurs dans l’EEE, en Suisse ou au Royaume-Uni.** La présence d’un quota gratuit ne signifie donc pas qu’une application publique peut être exploitée gratuitement dans ces zones. Vérifier les conditions du projet avant l’ouverture aux utilisateurs.
 
-CV-ATS conserve les versions de CV uniquement sur clic explicite de sauvegarde, avec annonce et résultat optimisé facultatifs. Ces sauvegardes sont privées et supprimables. Le suivi des quotas conserve des métadonnées techniques sans contenu de CV. Aucun fichier importé, contenu de navigateur persistant ou journal de texte n’est créé. Les comptes et droits sont stockés par Supabase Auth ; la connexion utilise un cookie HttpOnly, et les événements d’authentification relèvent de Supabase. L’extraction s’effectue en mémoire et les endpoints utilisent `Cache-Control: no-store`. Sans sauvegarde volontaire, les textes restent uniquement dans l’onglet jusqu’à fermeture ou actualisation.
+CV-ATS conserve les versions de CV uniquement sur clic explicite de sauvegarde, avec annonce et résultat optimisé facultatifs. Ces sauvegardes sont privées et supprimables. Le suivi de consommation conserve des métadonnées techniques sans contenu de CV. Aucun fichier importé, contenu de navigateur persistant ou journal de texte n’est créé. Les clés personnelles sont conservées chiffrées, sans être renvoyées au navigateur. Les comptes et droits sont stockés par Supabase Auth ; la connexion utilise un cookie HttpOnly, et les événements d’authentification relèvent de Supabase. L’extraction s’effectue en mémoire et les endpoints utilisent `Cache-Control: no-store`. Sans sauvegarde volontaire, les textes restent uniquement dans l’onglet jusqu’à fermeture ou actualisation.
 
 Pour analyser, CV et annonce sont transmis à **Google Gemini**. L’application n’utilise ni Files API, ni cache explicite, ni conversation conservée. Cela ne constitue pas une garantie de conservation zéro chez Google : les conditions du fournisseur, la région et l’offre s’appliquent. Les règles d’utilisation des données des services payants s’appliquent également au quota gratuit pour les utilisateurs situés dans l’EEE, en Suisse ou au Royaume-Uni, selon les conditions consultées. Ne pas ajouter d’analytics, de capture de corps de requêtes ou de logs de contenu. Vercel conserve sa propre télémétrie technique selon son offre.
 
@@ -82,7 +83,7 @@ Pour analyser, CV et annonce sont transmis à **Google Gemini**. L’application
 - Le score est une estimation textuelle, pas celui d’un ATS commercial ni une probabilité d’embauche. La mise en page d’origine n’est pas évaluée après extraction.
 - Relire l’extraction, notamment pour un PDF partiellement scanné.
 - Les polices fournies couvrent notamment le français et les alphabets latin, grec et cyrillique. Ajouter des polices adaptées pour d’autres écritures.
-- Les visiteurs non connectés et les comptes non autorisés sont bloqués avant tout appel à Gemini. Les utilisateurs sont soumis à un quota individuel mensuel et à un budget quotidien partagé. Ces plafonds internes ne garantissent pas qu’il reste du quota officiel Google. Une requête déjà en cours peut terminer après désactivation. Une protection d’accès Vercel peut être conservée en complément.
+- Les visiteurs non connectés et les comptes non autorisés sont bloqués avant tout appel à Gemini. Aucun plafond IA interne ne s’applique. Les limites Gemini restent liées au projet Google utilisé ; deux clés du même projet partagent ses limites. Une requête déjà en cours peut terminer après désactivation. Une protection d’accès Vercel peut être conservée en complément.
 
 ## Vérifications locales
 
@@ -97,14 +98,15 @@ Les tests Gemini utilisent des réponses simulées uniquement dans les fichiers 
 
 ## Documentation
 
-- [Sauvegardes, migration Supabase, quotas et suivi Gemini](docs/SAUVEGARDES-QUOTAS.md)
+- [Clés personnelles, migration 002 et absence de quotas internes](docs/CLES-PERSONNELLES.md)
+- [Sauvegardes et suivi Gemini](docs/SAUVEGARDES-QUOTAS.md)
+- [Revue du dépôt de référence et améliorations retenues](docs/REPO-REFERENCE.md)
 - [Authentification, administrateur et gestion des utilisateurs](docs/AUTHENTIFICATION.md)
 - [Déploiement GitHub et Vercel](docs/DEPLOIEMENT.md)
 - [Architecture et points de modification](docs/ARCHITECTURE.md)
 - [Vérifications et limites du test](docs/VERIFICATIONS.md)
 
 Sources officielles consultées le 27 septembre 2026 :
-
 - https://ai.google.dev/gemini-api/docs/pricing
 - https://ai.google.dev/gemini-api/docs/rate-limits
 - https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite

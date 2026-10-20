@@ -52,18 +52,22 @@ Supabase Auth conserve les comptes. Les métadonnées serveur `app_metadata` con
 La déconnexion, la désactivation/réactivation et les changements de mot de passe changent la version d’accès. Une session ancienne est donc refusée à la prochaine requête, même si son JWT n’est pas encore expiré. La session en cookie dure au maximum une heure ; il n’y a pas de renouvellement automatique.
 
 
-## Sauvegardes et consommation (1.2)
+## Sauvegardes, clés et consommation (1.3)
 
-- `supabase/migrations/001_saves_and_quotas.sql` : tables, RLS et fonctions transactionnelles.
-- `lib/data/saves.ts`, `/api/cvs`, `/api/cvs/[id]` : snapshots volontaires validés, accès par jeton utilisateur sous RLS et filtre propriétaire explicite.
-- `lib/data/usage.ts` : réservations, suivi de chaque requête fournisseur et clôture. Les réponses Gemini sont observées avant parsing/validation, audit compris. Seules les métadonnées sont enregistrées.
-- `/api/usage` : quota de la personne connectée uniquement.
-- `/api/admin/usage`, `/api/admin/users/[id]/quota` : tableau global, budget quotidien et quotas individuels ; contrôle du rôle admin puis RPC privilégiée.
-- `components/usage-card.tsx`, `app/admin/usage-dashboard.tsx` : interfaces et affichage des limites du suivi.
-- `lib/docx.ts` : export Word côté navigateur, à la demande, sans API ni consommation Gemini.
+- `001_saves_and_quotas.sql` est la migration historique de départ, conservée telle quelle. Elle doit être suivie de `002_personal_keys_no_quotas.sql`, qui désactive toutes les limites IA et ajoute le stockage des clés personnelles.
+- `lib/data/saves.ts`, `/api/cvs`, `/api/cvs/[id]` : snapshots validés, accès par jeton utilisateur sous RLS et filtre propriétaire explicite.
+- `lib/keys/crypto.ts` : chiffrement AES-256-GCM, nonce aléatoire, identifiant utilisateur authentifié. Le secret réside dans `API_KEY_ENCRYPTION_SECRET`.
+- `lib/keys/personal.ts`, `/api/account/gemini` : lecture de statut masqué, enregistrement/remplacement et suppression de sa propre clé. La sélection de clé utilise une lecture serveur privilégiée filtrée par l’identifiant du compte authentifié. Une erreur ne permet jamais de supposer l’absence de clé personnelle.
+- `lib/data/usage.ts` : enregistrement de l’analyse, suivi de chaque requête fournisseur et clôture. Les réponses Gemini sont observées avant parsing/validation, audit compris. Seules les métadonnées sont enregistrées, avec `key_source`.
+- `/api/usage` : consommation et configuration masquée de la personne connectée.
+- `/api/admin/usage`, `/api/admin/users` : statistiques par modèle, source de clé et utilisateur. Les anciennes mutations de quotas retournent 410 après vérification du rôle admin.
+- `components/usage-card.tsx`, `app/admin/usage-dashboard.tsx`, `app/compte/gemini-form.tsx` : interfaces sans plafond ni solde de quota inventé.
+- `lib/docx.ts` : export Word navigateur, sans API ni consommation Gemini.
 
-Flux d’analyse : authentification/droits → validation des entrées → réservation atomique (1 ou 2 appels) → enregistrement de tentative avant chaque `fetch` → stockage des métadonnées de réponse → validation/audit → clôture et libération des seuls appels non tentés. L’authentification est en pratique vérifiée avant la lecture du corps, afin de refuser tôt les visiteurs anonymes. Une erreur de réservation bloque l’IA. Un crash laisse une réservation prudente.
+Flux d’analyse : authentification/droits → validation des entrées → sélection/déchiffrement de la clé → ouverture d’une ligne de suivi → tentative enregistrée avant chaque requête Gemini → métadonnées de réponse → validation/audit → clôture. La même clé et le même modèle sont utilisés pour toute l’analyse. L’authentification est vérifiée avant la lecture du corps. Aucune clé ne vient du corps de `/api/analyze`.
 
-Les fonctions de comptage sont réservées à `service_role`, jamais à un jeton utilisateur. Les réservations se verrouillent sur la ligne de paramètres, commune à toutes les instances Vercel ; aucun quota n’est fondé sur une Map mémoire. Pour modifier les valeurs de départ ou les unités/périodes, créer une nouvelle migration explicite et adapter les interfaces/documentations ; ne pas modifier silencieusement des compteurs existants.
+Le suivi n’effectue plus de réservation de budget ni de test d’un seuil. Les champs historiques `reserved_calls` et `charged_calls` décrivent le nombre d’appels prévu/constaté d’une action ; les nouvelles statistiques utilisent les lignes de tentatives effectives. `cvats_begin_run` ne consulte aucune table de quota. Le nom historique `cvats_reserve` reste comme fonction de compatibilité sans seuil pour les anciennes requêtes pendant une mise à jour. Les fonctions de suivi sont réservées à `service_role`, jamais à un jeton utilisateur.
 
-Voir `SAUVEGARDES-QUOTAS.md` pour les schémas, règles de période, données conservées et limites du suivi Google.
+Les enregistrements de clés sont inaccessibles aux rôles navigateur, même chiffrés. Seuls un statut, le modèle, la date et les quatre derniers caractères peuvent être renvoyés à leur propriétaire. Un incident de déchiffrement ou de base bloque l’analyse, sans utiliser la clé partagée. Les clés ne sont jamais incluses dans les statistiques.
+
+Voir `CLES-PERSONNELLES.md` pour la migration, le routage, le secret de chiffrement, les limites réelles Gemini et les contrôles après déploiement.

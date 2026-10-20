@@ -1,44 +1,33 @@
-# Vérifications — version 1.2
+# Vérifications — version 1.3
 
-Vérifications effectuées pour cette archive :
+- `npm test` : **23 groupes de tests réussis**.
+- `npm run lint`, `npm run typecheck` et `npm run build` : code, types et compilation de production vérifiés.
+- Serveur de production lancé localement : la page compte redirige les visiteurs vers la connexion ; GET, PUT et DELETE sur la route des clés refusent les visiteurs avec 401 et des réponses `no-store`.
+- Les tests utilisent des comptes et clés fictifs, sans appel Gemini réel ni accès à un projet Supabase hébergé. L’application livrée ne possède aucun mode de contournement ou de démonstration.
 
-- `npm test` : **18 groupes de tests passent**.
-- `npm run typecheck`, `npm run lint` et `npm run build` : types, lint et compilation de production réussis.
-- Serveur de production lancé localement : `/`, `/admin` et `/compte` redirigent vers la connexion ; `/connexion` répond 200. Sept accès API anonymes couvrant les sauvegardes, quotas et analyses sont refusés avec 401 et `Cache-Control: no-store`.
+## Clés personnelles
 
-## Authentification et API
+Les nouveaux tests couvrent : chiffrement AES-256-GCM avec nonce différent à chaque opération ; déchiffrement réservé au même identifiant utilisateur ; rejet d’une valeur altérée, d’un mauvais secret ou d’une configuration absente ; refus des requêtes anonymes et d’une origine différente ; impossibilité de choisir un autre propriétaire dans le formulaire ; stockage de ciphertext uniquement ; absence de clé complète/ciphertext dans les réponses d’API ; suppression limitée au compte connecté.
 
-Les réponses réseau Supabase/Gemini sont simulées dans les tests uniquement. Les contrôles vérifient notamment : visiteurs anonymes, séparation utilisateur/admin, comptes désactivés ou révoqués, premier changement de mot de passe obligatoire, cookies, origines, absence d’élévation de rôle, accès aux sauvegardes avec le jeton utilisateur plutôt que la clé privilégiée, filtre explicite du propriétaire et refus d’un changement de propriétaire dans le corps JSON.
+Une analyse optimisée est testée avec une clé personnelle et un modèle personnel, sans clé partagée configurée : génération et audit utilisent tous deux cette clé. Les erreurs fournisseur 400, 403, 404, 429 et 503 ainsi qu’une clé indéchiffrable ne produisent aucun repli vers la clé du site. La clé partagée n’est sélectionnée qu’en l’absence d’enregistrement personnel. Les réponses fournisseur brutes, contenant une clé fictive dans le test, ne sont pas exposées au client.
 
-Les tests vérifient qu’aucun appel Gemini n’a lieu lorsque la réservation de quota est refusée ou indisponible. Le suivi des tokens est contrôlé pour une réponse valide, une erreur fournisseur et une erreur réseau. Les appels de génération **et** d’audit passent par le compteur, avec persistance de la tentative avant l’appel.
+## Migrations et suppression des quotas
 
-## Migration et droits PostgreSQL
+Les fichiers SQL sont exécutés dans **PGlite**, moteur PostgreSQL embarqué. Seuls le contexte Auth Supabase et la table minimale des utilisateurs sont simulés. La migration 001 historique et ses anciennes règles restent testées en isolation pour vérifier les installations de départ.
 
-Le fichier SQL réel est exécuté dans **PGlite**, moteur PostgreSQL embarqué en mémoire. Seules les fonctions de contexte Auth Supabase et la table minimale des utilisateurs sont simulées. Aucun projet Supabase externe n’est utilisé.
+Un test séparé applique **001 puis 002**, avec des limites historiques fixées à zéro, puis rejoue 002 pour vérifier sa réexécution. Il effectue **105 admissions pour chacune des deux sources de clé dans la même minute**, sans refus lié aux anciennes limites quotidiennes, mensuelles ou de fréquence. La fonction de compatibilité `cvats_reserve` est également vérifiée sans plafond.
 
-Les tests couvrent :
+Les tables de clés et fonctions de suivi sont inaccessibles au rôle utilisateur. Les anciens réglages de quotas ne sont plus modifiables par `service_role`. Les statistiques séparent exactement les appels/tokens des deux sources ; les anciens champs de plafond ne sont plus retournés. Les comptes désactivés restent refusés. La suppression d’un compte supprime sa clé tout en préservant les statistiques globales dissociées.
 
-- exécution de la migration et réexécution sans destruction ;
-- sauvegarde, isolation RLS entre deux comptes, impossibilité de supprimer le CV d’autrui ;
-- jeton révoqué, compte désactivé, limite de 20 sauvegardes ;
-- impossibilité pour un utilisateur d’appeler les fonctions privilégiées ou de lire les tables de comptage ;
-- réservation de deux appels, plafond individuel, budget partagé, libération de l’audit non tenté ;
-- décompte d’un appel tenté en erreur, idempotence du suivi et de la clôture ;
-- demandes concurrentes soumises au moteur : seulement deux admissions pour deux emplacements disponibles ;
-- réservations non clôturées conservées, exclusion des anciennes périodes, limite sur 60 secondes ;
-- suppression des sauvegardes avec le compte sans disparition de la consommation globale.
+PGlite n’est pas un déploiement Supabase réel ni un test de charge Vercel multi-instance. Les permissions et intégrations du projet hébergé sont à vérifier après installation.
 
-PGlite n’est pas un déploiement Supabase réel ni un test de charge multi-instance Vercel : l’intégration au projet de production reste à vérifier après migration.
+## Fonctions existantes
 
-## Exports
+Les tests d’authentification, de révocation des sessions, d’isolation des sauvegardes, de contrôle des rôles, de parsing/validation Gemini, d’audit de fidélité et de suivi des tokens restent présents. Les API refusent l’analyse en cas d’indisponibilité de configuration/suivi, sans appeler Gemini avec une autre clé.
 
-Le nouveau DOCX est généré puis relu avec Mammoth. Le texte, les accents, les dates et les puces sont retrouvés. Le XML ne contient ni tableau ni zone de texte flottante. Il n’y a pas d’appel IA pour cet export.
+L’export Word est relu avec Mammoth : texte, accents et dates sont conservés, sans tableau ni zone de texte flottante. Les moteurs PDF et d’import existants sont inchangés ; leur validation antérieure reste décrite dans l’historique de livraison. Les nouveaux écrans ne sont pas vérifiés visuellement dans une session connectée à un vrai compte Supabase.
 
-Les trois styles PDF et l’import PDF/DOCX existants sont conservés de la version précédemment vérifiée : extraction de texte, PDF sans texte détecté, polices et rendu contrôlés. Cette mise à jour ne change pas leur moteur. Les nouveaux écrans n’ont pas fait l’objet d’un contrôle visuel automatisé dans un navigateur connecté à un véritable compte.
-
-**Non testé sans tes accès :** exécution de la migration dans ton projet Supabase hébergé, tes comptes réels, appel Gemini avec ta clé, valeurs/quotas de ton projet Google, déploiement sur ton compte Vercel. Aucun secret réel n’est inclus dans le ZIP. L’application livrée n’a aucun mode factice ni contournement d’authentification.
-
-Pour relancer :
+**Non effectué ici :** migration sur ton projet hébergé, appels avec tes clés réelles, validation de leurs modèles/quotas Google, déploiement sur ton compte Vercel. Le guide `CLES-PERSONNELLES.md` fournit les contrôles fonctionnels à réaliser après configuration.
 
 ```bash
 npm ci
@@ -48,4 +37,4 @@ npm run typecheck
 npm run lint
 ```
 
-Le premier build crée notamment `next-env.d.ts`. Les étapes de vérification fonctionnelle après installation sont dans `SAUVEGARDES-QUOTAS.md`.
+Le premier build crée notamment `next-env.d.ts`, exclu de l’archive comme les dépendances et les fichiers de compilation.

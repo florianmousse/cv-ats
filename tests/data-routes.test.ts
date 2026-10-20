@@ -27,7 +27,7 @@ test('New endpoints deny anonymous users and members cannot edit quotas',()=>iso
  assert.equal(calls,0);
  assert.equal((await dashboard(request('/api/admin/usage'))).status,403);
  assert.equal((await budget(request('/api/admin/usage','PATCH',{limit:900}))).status,403);
- assert.equal((await quota(request('/api/admin/users/'+id+'/quota','PATCH',{limit:900}),ctx)).status,403);
+ assert.equal((await quota(request('/api/admin/users/'+id+'/quota','PATCH',{limit:900}))).status,403);
  assert.equal(calls,3);
 }));
 
@@ -50,10 +50,13 @@ test('Saved CV operations use the user JWT and cannot change owner',()=>isolated
  assert.equal((await remove(request('/api/cvs/'+id,'DELETE'),ctx)).status,404);
 }));
 
-test('Quota denial and unavailable accounting prevent every Gemini call',()=>isolated(async()=>{
- for(const [message,code] of [['CVATS_USER_QUOTA',429],['CVATS_GLOBAL_QUOTA',429],['CVATS_RATE_LIMIT',429],['function does not exist',503]] as const){
-  let calls=0;globalThis.fetch=async(input)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return authResponse();if(url.endsWith('/rpc/cvats_reserve'))return Response.json({message,code:'P0001'},{status:400});calls++;throw new Error('No provider call permitted');};
-  const r=await analyze(request('/api/analyze','POST',{mode:'scan',cv:'Expérience professionnelle et compétences vérifiées.',job:''}));assert.equal(r.status,code);assert.equal(calls,0);
+test('Unavailable accounting or key configuration prevents every Gemini call',()=>isolated(async()=>{
+ for(const blockedPath of ['/rest/v1/cvats_personal_keys','/rpc/cvats_begin_run']){
+  let calls=0;globalThis.fetch=async(input)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return authResponse();
+   if(url.includes(blockedPath))return Response.json({message:'database unavailable',code:'P0001'},{status:400});
+   if(url.includes('/rest/v1/cvats_personal_keys'))return Response.json(null);
+   calls++;throw new Error('No provider call permitted');};
+  const r=await analyze(request('/api/analyze','POST',{mode:'scan',cv:'Expérience professionnelle et compétences vérifiées.',job:''}));assert.equal(r.status,503);assert.equal(calls,0);
  }
 }));
 

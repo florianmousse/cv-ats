@@ -67,7 +67,7 @@ Sélectionner l’environnement **Production** et, si souhaité, **Preview**. Ga
 
 10. Cliquer **Deploy**.
 
-L’application utilise des fonctions Node.js. Supabase Auth est utilisé pour les comptes. **Exécuter `supabase/migrations/001_saves_and_quotas.sql` dans le SQL Editor du projet Supabase avant le déploiement** : cinq tables et des fonctions sécurisées gèrent les sauvegardes et quotas. Voir `SAUVEGARDES-QUOTAS.md`. Aucun stockage Blob, bucket ou service Cloudflare n’est nécessaire. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent uniquement au script local.
+L’application utilise des fonctions Node.js. Supabase Auth est utilisé pour les comptes. **Sur une installation neuve, exécuter les migrations 001 puis 002 dans le SQL Editor Supabase avant le déploiement**. Pour une mise à jour depuis 1.2, seule la migration 002 est nouvelle. Les sauvegardes, clés chiffrées et statistiques utilisent la base ; aucun quota IA interne n’est appliqué. Configurer aussi `API_KEY_ENCRYPTION_SECRET` ; voir `CLES-PERSONNELLES.md`. Aucun stockage Blob, bucket ou service Cloudflare n’est nécessaire. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent uniquement au script local.
 
 ## 5. Vérifier après déploiement
 
@@ -92,8 +92,9 @@ Dans **Project → Settings → Environment Variables**, modifier ou ajouter la 
 | Compte non autorisé | Créer le compte depuis le script administrateur ou l’interface `/admin`, pas simplement depuis le tableau de bord Supabase. |
 | Session révoquée / expirée | Se reconnecter ; si le compte est désactivé, demander sa réactivation à l’administrateur. |
 | IA non activée | Ajouter `GEMINI_API_KEY` dans le bon environnement puis redéployer. |
-| Quota CV-ATS atteint | Vérifier le plafond mensuel de la personne et le budget quotidien du site dans `/admin`. Les compteurs ne sont pas remis à zéro par une modification de plafond. |
-| Sauvegardes et quotas indisponibles | Exécuter la migration SQL complète dans le bon projet Supabase et vérifier les clés serveur. |
+| Ancien message de quota CV-ATS | Appliquer la migration 002 puis déployer tout le code 1.3. Les plafonds internes ont été retirés. |
+| Configuration/suivi indisponible | Exécuter les migrations 001 puis 002 dans le bon projet Supabase et vérifier les clés serveur. |
+| Clé personnelle indéchiffrable | Vérifier que `API_KEY_ENCRYPTION_SECRET` est identique à la valeur utilisée lors de l’enregistrement ; sinon, ressaisir la clé personnelle après correction de la configuration. |
 | Quota Gemini atteint / HTTP 429 | Consulter le quota AI Studio, attendre sa réinitialisation, vérifier l’éligibilité du modèle. Ne pas lancer des tentatives en boucle. |
 | Modèle indisponible / HTTP 404 | Choisir un modèle accessible, modifier `GEMINI_MODEL`, redéployer. |
 | Gemini refuse la requête | Vérifier la clé, les autorisations du projet et l’accès au modèle. |
@@ -104,3 +105,7 @@ Dans **Project → Settings → Environment Variables**, modifier ou ajouter la 
 | Différence entre local et Vercel | Vérifier les versions Node, les variables d’environnement et le dernier commit déployé. |
 
 Sources : https://vercel.com/docs/frameworks/full-stack/nextjs ; https://vercel.com/docs/environment-variables ; https://vercel.com/docs/functions/limitations ; https://ai.google.dev/gemini-api/docs/api-key
+
+## Clés personnelles (1.3)
+
+Ajouter `API_KEY_ENCRYPTION_SECRET` aux variables serveur Vercel : 32 octets aléatoires encodés en base64, générés une seule fois et conservés. Le guide `CLES-PERSONNELLES.md` fournit la commande. `GEMINI_API_KEY` reste la clé partagée, facultative si tous les utilisateurs emploient leur propre clé. Ne jamais placer une clé utilisateur en variable publique ou dans GitHub. Une clé personnelle en erreur ne déclenche pas de repli vers la clé partagée.
