@@ -47,7 +47,7 @@ test('Analysis: personal key and model used for BOTH generation and audit, no sh
  globalThis.fetch=async(input,init)=>{const url=String(input);
   if(url.endsWith('/auth/v1/user'))return auth();
   if(url.includes('/cvats_personal_keys'))return Response.json({encrypted_key:encryptKey(personalKey,userId),model:'gemini-personal-test'});
-  if(url.includes('/rpc/')){const args=JSON.parse(String(init?.body));if(url.endsWith('cvats_begin_run')){sources.push(args.p_source);assert.equal(args.p_model,'gemini-personal-test');return Response.json(userId);}if(url.endsWith('cvats_start_call'))return Response.json(++ordinal);return Response.json(null);}
+  if(url.includes('/rpc/')){const args=JSON.parse(String(init?.body));if(url.endsWith('cvats_admit_run')){sources.push(args.p_source);assert.equal(args.p_model,'gemini-personal-test');return Response.json(userId);}if(url.endsWith('cvats_start_call'))return Response.json(++ordinal);return Response.json(null);}
   assert.ok(url.includes('gemini-personal-test:generateContent'));assert.equal(new Headers(init?.headers).get('x-goog-api-key'),personalKey);assert.ok(!url.includes(personalKey));calls++;
   return answer(calls===1?fixture:{fidele:true,titres:labels});
  };
@@ -57,12 +57,12 @@ test('Analysis: personal key and model used for BOTH generation and audit, no sh
 test('Personal failures never fall back to the site key; shared key used only when absent',()=>isolated(async()=>{
  for(const status of [400,403,404,429,503]){
   let calls=0;
-  globalThis.fetch=async(input,init)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return auth();if(url.includes('/cvats_personal_keys'))return Response.json({encrypted_key:encryptKey(personalKey,userId),model:''});if(url.includes('/rpc/'))return Response.json(url.endsWith('cvats_begin_run')?userId:url.endsWith('cvats_start_call')?1:null);
+  globalThis.fetch=async(input,init)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return auth();if(url.includes('/cvats_personal_keys'))return Response.json({encrypted_key:encryptKey(personalKey,userId),model:''});if(url.includes('/rpc/'))return Response.json(url.endsWith('cvats_admit_run')?userId:url.endsWith('cvats_start_call')?1:null);
    calls++;assert.equal(new Headers(init?.headers).get('x-goog-api-key'),personalKey);return Response.json({error:{message:'upstream '+personalKey}},{status});};
   const r=await analyze(request('POST',{mode:'scan',cv:toPlainText(fixture),job:''}));assert.ok(r.status>=400);assert.equal(calls,1);assert.ok(!(await r.text()).includes(personalKey));
  }
  let calls=0;globalThis.fetch=async(input)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return auth();if(url.includes('/cvats_personal_keys'))return Response.json({encrypted_key:'unreadable',model:''});calls++;throw new Error('No call allowed');};
  assert.equal((await analyze(request('POST',{mode:'scan',cv:toPlainText(fixture),job:''}))).status,503);assert.equal(calls,0);
- globalThis.fetch=async(input,init)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return auth();if(url.includes('/cvats_personal_keys'))return Response.json(null);if(url.includes('/rpc/')){if(url.endsWith('cvats_begin_run')){assert.equal(JSON.parse(String(init?.body)).p_source,'shared');return Response.json(userId);}return Response.json(url.endsWith('cvats_start_call')?1:null);}calls++;assert.equal(new Headers(init?.headers).get('x-goog-api-key'),'shared-test-key');return answer({score:75,pointsForts:[],problemes:[],motsClesManquants:[],recommandations:[]});};
+ globalThis.fetch=async(input,init)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return auth();if(url.includes('/cvats_personal_keys'))return Response.json(null);if(url.includes('/rpc/')){if(url.endsWith('cvats_admit_run')){assert.equal(JSON.parse(String(init?.body)).p_source,'shared');return Response.json(userId);}return Response.json(url.endsWith('cvats_start_call')?1:null);}calls++;assert.equal(new Headers(init?.headers).get('x-goog-api-key'),'shared-test-key');return answer({score:75,pointsForts:[],problemes:[],motsClesManquants:[],recommandations:[]});};
  assert.equal((await analyze(request('POST',{mode:'scan',cv:toPlainText(fixture),job:''}))).status,200);assert.equal(calls,1);
 }));

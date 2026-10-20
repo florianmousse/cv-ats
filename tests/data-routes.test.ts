@@ -27,7 +27,7 @@ test('New endpoints deny anonymous users and members cannot edit quotas',()=>iso
  assert.equal(calls,0);
  assert.equal((await dashboard(request('/api/admin/usage'))).status,403);
  assert.equal((await budget(request('/api/admin/usage','PATCH',{limit:900}))).status,403);
- assert.equal((await quota(request('/api/admin/users/'+id+'/quota','PATCH',{limit:900}))).status,403);
+ assert.equal((await quota(request('/api/admin/users/'+id+'/quota','PATCH',{limit:900}),ctx)).status,403);
  assert.equal(calls,3);
 }));
 
@@ -51,7 +51,7 @@ test('Saved CV operations use the user JWT and cannot change owner',()=>isolated
 }));
 
 test('Unavailable accounting or key configuration prevents every Gemini call',()=>isolated(async()=>{
- for(const blockedPath of ['/rest/v1/cvats_personal_keys','/rpc/cvats_begin_run']){
+ for(const blockedPath of ['/rest/v1/cvats_personal_keys','/rpc/cvats_admit_run']){
   let calls=0;globalThis.fetch=async(input)=>{const url=String(input);if(url.endsWith('/auth/v1/user'))return authResponse();
    if(url.includes(blockedPath))return Response.json({message:'database unavailable',code:'P0001'},{status:400});
    if(url.includes('/rest/v1/cvats_personal_keys'))return Response.json(null);
@@ -68,4 +68,34 @@ test('Metering records Gemini metadata, unknown tokens and failed requests once'
  assert.deepEqual(events,['cvats_start_call','provider','cvats_record_call']);assert.equal(reports[0].p_total,125);assert.equal(reports[0].p_thought,5);
  await meteredFetch(id,async()=>new Response('upstream error',{status:429}))('https://gemini.example');assert.equal(reports[1].p_total,null);assert.equal(reports[1].p_status,429);
  await assert.rejects(meteredFetch(id,async()=>{throw new Error('network');})('https://gemini.example'),/network/);assert.equal(reports[2].p_status,null);assert.equal(reports.length,3);
+}));
+
+test('Only admins can configure validated defaults and per-account overrides',()=>isolated(async()=>{
+ const writes:Array<{name:string;body:unknown}>=[];
+ globalThis.fetch=async(input,init)=>{
+  const url=String(input);if(url.endsWith('/auth/v1/user'))return Response.json({id:userId,email:'admin@example.com',app_metadata:{...metadata,cvats_role:'admin'}});
+  writes.push({name:url.split('/').at(-1)!,body:JSON.parse(String(init?.body))});return Response.json(null);
+ };
+ assert.equal((await budget(request('/api/admin/usage','PATCH',{dailyLimit:50,defaultMonthlyLimit:5}))).status,200);
+ assert.deepEqual(writes[0],{name:'cvats_set_shared_policy',body:{p_daily:50,p_monthly:5}});
+ for(const limit of [0,12,null])assert.equal((await quota(request('/api/admin/users/'+id+'/quota','PATCH',{limit}),ctx)).status,200);
+ assert.deepEqual(writes[3],{name:'cvats_set_quota',body:{p_user:id,p_limit:null}});
+ for(const limit of [-1,1.5,1000001,'10'])assert.equal((await quota(request('/api/admin/users/'+id+'/quota','PATCH',{limit}),ctx)).status,400);
+ assert.equal((await budget(request('/api/admin/usage','PATCH',{dailyLimit:5}))).status,400);
+ assert.equal((await budget(new Request(origin+'/api/admin/usage',{method:'PATCH',headers:{Origin:'https://other.test'},body:'{}'}))).status,403);
+ assert.equal(writes.length,4);
+}));
+
+test('Exhausted shared quotas reject before any provider request',()=>isolated(async()=>{
+ for(const code of ['CVATS_USER_QUOTA','CVATS_GLOBAL_QUOTA']){
+  let providerCalls=0;
+  globalThis.fetch=async(input)=>{
+   const url=String(input);if(url.endsWith('/auth/v1/user'))return authResponse();
+   if(url.includes('/rest/v1/cvats_personal_keys'))return Response.json(null);
+   if(url.includes('/rpc/cvats_admit_run'))return Response.json({message:code,code:'P0001'},{status:400});
+   providerCalls++;throw new Error('Provider must not be reached');
+  };
+  const response=await analyze(request('/api/analyze','POST',{mode:'scan',cv:'Expérience professionnelle et compétences vérifiées.',job:''}));
+  assert.equal(response.status,429);assert.match((await response.json()).error,/clé Gemini/);assert.equal(providerCalls,0);
+ }
 }));

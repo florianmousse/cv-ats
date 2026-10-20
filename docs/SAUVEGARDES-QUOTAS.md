@@ -1,11 +1,11 @@
-# Sauvegardes privées et suivi Gemini — version 1.3
+# Sauvegardes privées et suivi de consommation — version 1.4
 
-Le nom de ce fichier est conservé pour les liens des versions précédentes. **Les quotas internes ont été supprimés**. Le guide à suivre pour la mise à jour et les clés personnelles est [CLES-PERSONNELLES.md](CLES-PERSONNELLES.md).
+Les quotas internes limitent uniquement la clé partagée. Voir [QUOTAS-IA.md](QUOTAS-IA.md) pour leur configuration et [CLES-PERSONNELLES.md](CLES-PERSONNELLES.md) pour les clés personnelles.
 
 ## Installation ou mise à jour
 
-- Projet neuf : exécuter `001_saves_and_quotas.sql`, puis `002_personal_keys_no_quotas.sql`, dans le SQL Editor Supabase.
-- Projet déjà en 1.2 : exécuter seulement la nouvelle migration 002, configurer `API_KEY_ENCRYPTION_SECRET` sur Vercel, puis redéployer.
+- Projet neuf : exécuter `001_saves_and_quotas.sql`, puis `002_personal_keys_no_quotas.sql` et `003_shared_key_quotas.sql`, dans le SQL Editor Supabase.
+- Projet déjà en 1.2 : exécuter 002 puis 003 ; en 1.3 : exécuter 003 seulement. Voir `QUOTAS-IA.md`.
 - Les comptes et sauvegardes existants sont conservés. Aucun bucket n’est requis.
 
 ## Sauvegarder et charger son CV
@@ -25,9 +25,9 @@ Il n’y a pas de liste des CV des autres utilisateurs dans l’admin. La RLS v�
 
 La suppression d’un utilisateur dans l’admin supprime ses sauvegardes et sa clé personnelle. Les lignes de consommation sont dissociées du compte et conservées pour préserver les statistiques globales. Les politiques de sauvegarde/rétention de l’hébergeur s’appliquent également aux données supprimées.
 
-## Suivi sans plafond
+## Suivi et quotas partagés
 
-L’atelier et l’admin affichent les appels tentés et tokens déclarés, en séparant clé personnelle et clé du site. Aucun compteur ne bloque l’utilisation à un seuil quotidien, mensuel ou de fréquence. Seules les limites Gemini du projet utilisé s’appliquent. Les erreurs de réseau/base/authentification restent des erreurs de service, sans contournement d’accès ni changement automatique de clé.
+L’atelier et l’admin affichent les appels tentés et tokens déclarés, en séparant clé personnelle et clé du site. Les appels utilisant la clé du site sont soumis au quota mensuel par compte et au plafond quotidien global définis par l’admin. Les clés personnelles restent hors quota interne. Voir `QUOTAS-IA.md`. Les erreurs de réseau/base/authentification restent des erreurs de service, sans contournement d’accès ni changement automatique de clé.
 
 Un scan utilise 1 appel, une optimisation jusqu’à 2. L’import, l’enregistrement, le chargement et les exports ne consomment pas d’IA. Le suivi commence à l’installation de cette fonctionnalité et n’importe pas d’historique Google. Les tokens inconnus sont signalés ; les tableaux ne constituent ni une facture ni un solde officiel de quota.
 
@@ -39,7 +39,7 @@ Un scan utilise 1 appel, une optimisation jusqu’à 2. L’import, l’enregist
 | CV et annexes facultatives | `cvats_saved_cvs`, sur sauvegarde volontaire |
 | Clés personnelles chiffrées | `cvats_personal_keys`, serveur uniquement |
 | Métadonnées d’appels | `cvats_usage_runs`, `cvats_usage_calls`, sans texte de CV/clé |
-| Anciennes limites | Tables historiques non utilisées ; aucune limite active |
+| Quotas partagés | `cvats_shared_policy`, `cvats_shared_user_limits`, paramètres serveur uniquement |
 
 La RLS protège toutes les tables. Les sauvegardes utilisent un jeton utilisateur et la vérification de leurs propriétaires ; le comptage et la gestion chiffrée des clés utilisent des routes serveur authentifiées. Les jetons des utilisateurs ne permettent pas de lire la table des clés.
 

@@ -15,7 +15,7 @@ Cette version impose une connexion avant l’accès à l’atelier. Les routes d
 
 Les noms des variables de cette application restent ceux ci-dessus, même si l’interface Supabase propose les nouvelles clés publishable/secret. **La clé service_role/secret est exclusivement serveur** : jamais dans GitHub, dans une variable `NEXT_PUBLIC_`, ni dans le navigateur.
 
-Les comptes résident dans Supabase Auth. **Sur une installation neuve, exécuter les migrations SQL 001 puis 002 dans le SQL Editor** pour les sauvegardes, les clés personnelles et le suivi. Voir `CLES-PERSONNELLES.md`. Les plafonds internes de la version 1.2 sont supprimés par 002. Aucun bucket n’est nécessaire. Les droits sont dans `app_metadata`, modifiable uniquement par le serveur privilégié. `user_metadata`, modifiable par les utilisateurs, n’est jamais utilisé pour autoriser un accès.
+Les comptes résident dans Supabase Auth. **Sur une installation neuve, exécuter les migrations SQL 001, 002 puis 003 dans le SQL Editor** pour les sauvegardes, les clés personnelles et le suivi. Voir `CLES-PERSONNELLES.md`. La migration 003 réintroduit des plafonds uniquement pour la clé partagée ; voir `QUOTAS-IA.md`. Aucun bucket n’est nécessaire. Les droits sont dans `app_metadata`, modifiable uniquement par le serveur privilégié. `user_metadata`, modifiable par les utilisateurs, n’est jamais utilisé pour autoriser un accès.
 
 ## 2. Créer ton administrateur depuis ton ordinateur
 
@@ -119,7 +119,7 @@ Cette commande refuse de promouvoir un utilisateur ordinaire : elle réinitialis
 - Les actions qui modifient un état refusent les origines absentes ou différentes, en plus du contrôle de session.
 - Les réponses d’API sensibles ne sont pas mises en cache ; les pages privées sont rendues dynamiquement.
 - Les comptes, mots de passe protégés, droits et événements d’authentification sont gérés/persistés par Supabase. Les versions de CV et leurs annexes sont stockées uniquement sur sauvegarde explicite. Les compteurs de consommation ne contiennent pas les textes analysés.
-- Sauvegardes privées volontaires, clés personnelles chiffrées et suivi de consommation sans quota interne : voir `CLES-PERSONNELLES.md`. Seules les limites du projet Gemini utilisé s’appliquent.
+- Sauvegardes privées volontaires, clés personnelles chiffrées et suivi de consommation et quotas sur la clé du site : voir `CLES-PERSONNELLES.md`. Les clés personnelles ne consomment pas le quota interne ; les limites du projet Gemini utilisé restent applicables.
 
 Conserver les protections et limites d’authentification Supabase. Pour un domaine très exposé, les règles de pare-feu/rate limiting de l’hébergeur peuvent compléter ces contrôles ; l’application ne prétend pas empêcher tout abus par un utilisateur auquel tu as volontairement donné accès.
 

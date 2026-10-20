@@ -1,0 +1,13 @@
+import {ArrowRight,CheckCheck,ScanLine,Sparkles} from 'lucide-react';
+import type {Scan} from '@/lib/cv';
+const ranks={'élevée':0,'moyenne':1,'faible':2};
+export default function ScanReport({data,hasJob}:{data:Scan;hasJob:boolean}){
+ const problems=[...data.problemes].sort((a,b)=>ranks[a.severite]-ranks[b.severite]);
+ const tone=data.score>=75?'good':data.score>=50?'medium':'low';
+ return <>
+  <div className="scan-header"><div><span className="eyebrow">TON DIAGNOSTIC, TON PLAN D’ACTION</span><h2>Les prochaines améliorations à apporter.</h2><p>Une estimation de la lisibilité du texte, pas une probabilité d’embauche.<br/>La mise en page du document d’origine n’est pas évaluée.</p></div><div className={`score score-ring ${tone}`}><strong>{data.score}<small>/100</small></strong><span>{data.score>=75?'Bonne base ATS':data.score>=50?'À améliorer':'À retravailler'}</span></div></div>
+  <div className="diagnostic-summary"><div><strong>{problems.filter(p=>p.severite==='élevée').length}</strong><span>points prioritaires</span></div><div><strong>{data.pointsForts.length}</strong><span>points forts</span></div><div><strong>{hasJob?data.motsClesManquants.length:'—'}</strong><span>mots-clés à examiner</span></div></div>
+  {problems.length>0&&<div className="first-action"><span className="eyebrow">COMMENCE PAR ICI</span><p>{problems[0].texte}</p><a href="#cv">Revoir le texte de mon CV <ArrowRight size={14}/></a></div>}
+  <div className="scan-grid"><div><h3><ScanLine size={18}/>Corrections par priorité</h3>{problems.length?problems.map((p,i)=><div className="problem" key={i}><span className={'severity '+(p.severite==='élevée'?'high':p.severite==='moyenne'?'mid':'light')}>{p.severite}</span><p>{p.texte}</p></div>):<p>Aucun problème identifié.</p>}</div><div><h3><CheckCheck size={18}/>Ce qui fonctionne déjà</h3><ul>{data.pointsForts.map((p,i)=><li key={i}>{p}</li>)}</ul>{!data.pointsForts.length&&<p>Aucun point fort identifié.</p>}</div><div><h3><Sparkles size={18}/>Mots-clés de l’annonce non repérés</h3><p>À ajouter seulement si ton parcours les justifie.</p><div className="keywords">{data.motsClesManquants.map((k,i)=><span key={i}>{k}</span>)}</div>{!data.motsClesManquants.length&&<p>{hasJob?'Aucun mot-clé manquant identifié.':'Ajoute une annonce pour comparer ses termes à ton CV.'}</p>}<a className="report-link" href="#mots-cles">Explorer l’atelier de mots-clés →</a></div><div><h3><ArrowRight size={18}/>Ta feuille de route</h3>{data.recommandations.length?<ol className="recommendation-list">{data.recommandations.map((p,i)=><li key={i}>{p}</li>)}</ol>:<p>Aucune recommandation supplémentaire.</p>}</div></div>
+ </>;
+}

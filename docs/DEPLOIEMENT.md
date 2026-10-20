@@ -67,7 +67,7 @@ Sélectionner l’environnement **Production** et, si souhaité, **Preview**. Ga
 
 10. Cliquer **Deploy**.
 
-L’application utilise des fonctions Node.js. Supabase Auth est utilisé pour les comptes. **Sur une installation neuve, exécuter les migrations 001 puis 002 dans le SQL Editor Supabase avant le déploiement**. Pour une mise à jour depuis 1.2, seule la migration 002 est nouvelle. Les sauvegardes, clés chiffrées et statistiques utilisent la base ; aucun quota IA interne n’est appliqué. Configurer aussi `API_KEY_ENCRYPTION_SECRET` ; voir `CLES-PERSONNELLES.md`. Aucun stockage Blob, bucket ou service Cloudflare n’est nécessaire. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent uniquement au script local.
+L’application utilise des fonctions Node.js et Supabase Auth. **Projet neuf : exécuter les migrations 001, 002 puis 003 dans le SQL Editor Supabase avant le déploiement.** Depuis la version 1.3, appliquer uniquement 003. Les quotas internes concernent la clé du site ; les clés personnelles restent hors quota CV-ATS. Configurer `API_KEY_ENCRYPTION_SECRET` pour leur chiffrement. Voir `QUOTAS-IA.md` et `CLES-PERSONNELLES.md`. Ne pas ajouter `ADMIN_EMAIL` ou `ADMIN_PASSWORD` à Vercel : ces variables servent au script local.
 
 ## 5. Vérifier après déploiement
 
@@ -92,8 +92,8 @@ Dans **Project → Settings → Environment Variables**, modifier ou ajouter la 
 | Compte non autorisé | Créer le compte depuis le script administrateur ou l’interface `/admin`, pas simplement depuis le tableau de bord Supabase. |
 | Session révoquée / expirée | Se reconnecter ; si le compte est désactivé, demander sa réactivation à l’administrateur. |
 | IA non activée | Ajouter `GEMINI_API_KEY` dans le bon environnement puis redéployer. |
-| Ancien message de quota CV-ATS | Appliquer la migration 002 puis déployer tout le code 1.3. Les plafonds internes ont été retirés. |
-| Configuration/suivi indisponible | Exécuter les migrations 001 puis 002 dans le bon projet Supabase et vérifier les clés serveur. |
+| Quota de la clé du site atteint | Ajouter une clé personnelle, attendre le renouvellement ou ajuster le plafond dans Administration. |
+| Configuration/suivi indisponible | Exécuter les migrations 001, 002 puis 003 dans le bon projet Supabase et vérifier les clés serveur. |
 | Clé personnelle indéchiffrable | Vérifier que `API_KEY_ENCRYPTION_SECRET` est identique à la valeur utilisée lors de l’enregistrement ; sinon, ressaisir la clé personnelle après correction de la configuration. |
 | Quota Gemini atteint / HTTP 429 | Consulter le quota AI Studio, attendre sa réinitialisation, vérifier l’éligibilité du modèle. Ne pas lancer des tentatives en boucle. |
 | Modèle indisponible / HTTP 404 | Choisir un modèle accessible, modifier `GEMINI_MODEL`, redéployer. |

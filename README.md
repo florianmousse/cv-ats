@@ -1,10 +1,10 @@
 # CV-ATS — Gemini, GitHub et Vercel
 
-Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et clés Gemini personnelles chiffrées dans Supabase. Aucun quota IA interne.
+Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et clés Gemini personnelles chiffrées dans Supabase. Quotas configurables pour la clé partagée uniquement.
 
-## Version 1.3 : clés personnelles, sans quotas internes
+## Version 1.4 : quotas partagés et atelier de mots-clés
 
-**Pour mettre à jour ton site : suivre [docs/CLES-PERSONNELLES.md](docs/CLES-PERSONNELLES.md)**. Appliquer la migration 002, configurer `API_KEY_ENCRYPTION_SECRET` sur Vercel, puis redéployer. Les personnes peuvent enregistrer leur clé Gemini dans Mon compte. Elle est prioritaire, sans repli vers la clé du site en cas d’erreur. Les anciennes limites quotidiennes, mensuelles et de fréquence IA sont supprimées pour tous les comptes.
+**Mise à jour : [docs/QUOTAS-IA.md](docs/QUOTAS-IA.md)**. Appliquer la migration 003 après 001 et 002, puis redéployer. L’admin configure le plafond quotidien du site, le quota mensuel par défaut et les exceptions par compte. Les clés personnelles restent prioritaires et hors quota interne. L’atelier propose aussi un repérage local de mots-clés et un diagnostic organisé par priorité.
 
 ## Accès privé obligatoire
 
@@ -27,7 +27,7 @@ GEMINI_API_KEY=ta_cle_personnelle
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
-Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification. Sur une installation neuve, exécuter les migrations SQL 001 puis 002 dans le SQL Editor Supabase avant la première analyse. Configurer `API_KEY_ENCRYPTION_SECRET` pour les clés personnelles ; voir le guide dédié.
+Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification. Sur une installation neuve, exécuter les migrations SQL 001, 002 puis 003 dans le SQL Editor Supabase avant la première analyse. Configurer `API_KEY_ENCRYPTION_SECRET` pour les clés personnelles ; voir le guide dédié.
 
 Ne jamais mettre de clé dans GitHub. `.env.local` est ignoré par Git. Ne pas préfixer la variable par `NEXT_PUBLIC_`.
 
@@ -57,7 +57,8 @@ Suivre **[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)** : création de clé Gemini
 - Scan : score indicatif sur le texte, points forts, problèmes, recommandations et mots-clés manquants. Les prompts prennent en compte les synonymes réellement équivalents.
 - Jusqu’à 20 sauvegardes privées par compte : enregistrer une nouvelle version, charger, supprimer ; annonce et résultat optimisé facultatifs.
 - Clé personnelle chiffrée, modèle personnel facultatif, clé partagée uniquement en l’absence de clé personnelle.
-- Aucun quota IA interne : statistiques par compte et par source de clé, sans réglage de plafond.
+- Quotas sur la clé du site : 10 appels par mois et par compte, 100 par jour pour le site par défaut, réglables par l’admin ; 0 impose une clé personnelle.
+- Atelier local de mots-clés : quatre domaines ou liste personnalisée, repérage dans le CV et l’annonce sans appel IA.
 - Tokens réellement déclarés par Gemini, avec indication des appels sans total connu et liens AI Studio.
 - Export Word modifiable dans le navigateur, sans appel IA supplémentaire.
 - Copie en texte brut et téléchargement PDF : Moderne sobre, Finance classique, Minimal aéré.
@@ -83,7 +84,7 @@ Pour analyser, CV et annonce sont transmis à **Google Gemini**. L’application
 - Le score est une estimation textuelle, pas celui d’un ATS commercial ni une probabilité d’embauche. La mise en page d’origine n’est pas évaluée après extraction.
 - Relire l’extraction, notamment pour un PDF partiellement scanné.
 - Les polices fournies couvrent notamment le français et les alphabets latin, grec et cyrillique. Ajouter des polices adaptées pour d’autres écritures.
-- Les visiteurs non connectés et les comptes non autorisés sont bloqués avant tout appel à Gemini. Aucun plafond IA interne ne s’applique. Les limites Gemini restent liées au projet Google utilisé ; deux clés du même projet partagent ses limites. Une requête déjà en cours peut terminer après désactivation. Une protection d’accès Vercel peut être conservée en complément.
+- Les visiteurs non connectés et les comptes non autorisés sont bloqués avant tout appel à Gemini. Les quotas internes s’appliquent uniquement à la clé partagée, administrateurs compris. Les limites Gemini restent liées au projet Google utilisé ; deux clés du même projet partagent ses limites. Une requête déjà en cours peut terminer après désactivation. Une protection d’accès Vercel peut être conservée en complément.
 
 ## Vérifications locales
 
@@ -98,7 +99,9 @@ Les tests Gemini utilisent des réponses simulées uniquement dans les fichiers 
 
 ## Documentation
 
-- [Clés personnelles, migration 002 et absence de quotas internes](docs/CLES-PERSONNELLES.md)
+- [Quotas de la clé du site et migration 003](docs/QUOTAS-IA.md)
+
+- [Clés personnelles et chiffrement](docs/CLES-PERSONNELLES.md)
 - [Sauvegardes et suivi Gemini](docs/SAUVEGARDES-QUOTAS.md)
 - [Revue du dépôt de référence et améliorations retenues](docs/REPO-REFERENCE.md)
 - [Authentification, administrateur et gestion des utilisateurs](docs/AUTHENTIFICATION.md)

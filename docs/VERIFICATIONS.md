@@ -1,6 +1,6 @@
-# Vérifications — version 1.3
+# Vérifications — version 1.4
 
-- `npm test` : **23 groupes de tests réussis**.
+- `npm test` : **28 tests réussis**.
 - `npm run lint`, `npm run typecheck` et `npm run build` : code, types et compilation de production vérifiés.
 - Serveur de production lancé localement : la page compte redirige les visiteurs vers la connexion ; GET, PUT et DELETE sur la route des clés refusent les visiteurs avec 401 et des réponses `no-store`.
 - Les tests utilisent des comptes et clés fictifs, sans appel Gemini réel ni accès à un projet Supabase hébergé. L’application livrée ne possède aucun mode de contournement ou de démonstration.
@@ -11,15 +11,19 @@ Les nouveaux tests couvrent : chiffrement AES-256-GCM avec nonce différent à c
 
 Une analyse optimisée est testée avec une clé personnelle et un modèle personnel, sans clé partagée configurée : génération et audit utilisent tous deux cette clé. Les erreurs fournisseur 400, 403, 404, 429 et 503 ainsi qu’une clé indéchiffrable ne produisent aucun repli vers la clé du site. La clé partagée n’est sélectionnée qu’en l’absence d’enregistrement personnel. Les réponses fournisseur brutes, contenant une clé fictive dans le test, ne sont pas exposées au client.
 
-## Migrations et suppression des quotas
+## Migrations et quotas de la clé partagée
 
 Les fichiers SQL sont exécutés dans **PGlite**, moteur PostgreSQL embarqué. Seuls le contexte Auth Supabase et la table minimale des utilisateurs sont simulés. La migration 001 historique et ses anciennes règles restent testées en isolation pour vérifier les installations de départ.
 
-Un test séparé applique **001 puis 002**, avec des limites historiques fixées à zéro, puis rejoue 002 pour vérifier sa réexécution. Il effectue **105 admissions pour chacune des deux sources de clé dans la même minute**, sans refus lié aux anciennes limites quotidiennes, mensuelles ou de fréquence. La fonction de compatibilité `cvats_reserve` est également vérifiée sans plafond.
+Le test historique de la version 1.3 applique **001 puis 002**, avec des limites historiques fixées à zéro, puis rejoue 002 pour vérifier sa réexécution. Il effectue **105 admissions pour chacune des deux sources de clé dans la même minute**, sans refus lié aux anciennes limites quotidiennes, mensuelles ou de fréquence. La fonction de compatibilité `cvats_reserve` est également vérifiée sans plafond.
 
-Les tables de clés et fonctions de suivi sont inaccessibles au rôle utilisateur. Les anciens réglages de quotas ne sont plus modifiables par `service_role`. Les statistiques séparent exactement les appels/tokens des deux sources ; les anciens champs de plafond ne sont plus retournés. Les comptes désactivés restent refusés. La suppression d’un compte supprime sa clé tout en préservant les statistiques globales dissociées.
+Dans le test historique 002, les tables de clés et fonctions de suivi sont inaccessibles au rôle utilisateur. Les anciens réglages de quotas ne sont plus modifiables par `service_role`. Les statistiques séparent exactement les appels/tokens des deux sources ; les anciens champs de plafond ne sont plus retournés. Les comptes désactivés restent refusés. La suppression d’un compte supprime sa clé tout en préservant les statistiques globales dissociées.
 
 PGlite n’est pas un déploiement Supabase réel ni un test de charge Vercel multi-instance. Les permissions et intégrations du projet hébergé sont à vérifier après installation.
+
+La migration 003 est testée après 001 et 002 : valeur par défaut, exceptions, quota nul, plafond global, réservation de deux appels, restitution de l’appel non tenté, admissions concurrentes, périodes expirées, permissions, réexécution et conservation des exceptions. Les clés personnelles restent autorisées même avec des plafonds partagés à zéro. Les routes admin sont testées pour les valeurs invalides et les accès interdits ; les refus de quota renvoient 429 sans appel fournisseur.
+
+L’atelier, le diagnostic avec données fictives, les filtres de mots-clés et les formulaires admin ont été vérifiés dans un aperçu local isolé. Le rendu de l’atelier est aussi contrôlé à 390 px. Aucun contournement d’authentification ni jeu de données de démonstration n’est livré dans l’application.
 
 ## Fonctions existantes
 

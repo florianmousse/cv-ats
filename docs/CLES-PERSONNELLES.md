@@ -1,9 +1,9 @@
-# Clés Gemini personnelles et suppression des quotas internes — version 1.3
+# Clés Gemini personnelles — version 1.4
 
 ## Mettre à jour ton site existant
 
-1. Dans **Supabase → SQL Editor**, exécuter le fichier complet `supabase/migrations/002_personal_keys_no_quotas.sql`.
-2. Si la migration 001 n’avait pas encore été exécutée, exécuter d’abord `001_saves_and_quotas.sql`, puis **002**. Sur une installation neuve, exécuter les deux dans cet ordre. Ne pas rejouer 001 seule après 002 : elle contient l’ancien fonctionnement historique.
+1. Dans **Supabase → SQL Editor**, exécuter `supabase/migrations/002_personal_keys_no_quotas.sql` si nécessaire, puis `003_shared_key_quotas.sql`. Voir `QUOTAS-IA.md`.
+2. Si la migration 001 n’avait pas encore été exécutée, exécuter d’abord `001_saves_and_quotas.sql`, puis **002**. Sur une installation neuve, exécuter 001, 002 puis 003 dans cet ordre. Ne pas rejouer les anciennes migrations seules ensuite.
 3. Générer une clé de chiffrement sur ton ordinateur :
 
    ```bash
@@ -15,9 +15,9 @@
 6. Remplacer les fichiers du dépôt par cette archive, dont les migrations, puis redéployer sur Vercel.
 7. Dans **Mon compte → Ma clé Gemini**, enregistrer une clé personnelle puis effectuer une analyse pour vérifier l’accès au modèle.
 
-La migration conserve les utilisateurs, leurs CV sauvegardés et les métadonnées de consommation. Les anciennes limites mensuelles, quotidiennes et de fréquence cessent de s’appliquer, **même si elles étaient à zéro ou déjà atteintes**. Les anciennes tables de paramètres restent présentes pour l’historique, mais elles ne sont plus consultées ni modifiables par l’application. Les anciennes routes de modification de quotas répondent 410 aux administrateurs.
+Les migrations conservent les comptes, CV et métadonnées. La migration 003 réintroduit des quotas uniquement sur la clé du site ; les clés personnelles restent hors quota interne. Les anciennes routes admin de quotas sont à nouveau actives.
 
-Les nouvelles routes ont besoin de la migration 002. Sans elle, l’application affiche une erreur de configuration et n’appelle pas Gemini : elle ne suppose jamais à tort qu’une clé personnelle absente de la réponse doit être remplacée par celle du site.
+Les routes de clés ont besoin de 002 ; les analyses exigent aussi 003. Sans elle, l’application affiche une erreur de configuration et n’appelle pas Gemini : elle ne suppose jamais à tort qu’une clé personnelle absente de la réponse doit être remplacée par celle du site.
 
 ## Utilisation par chaque personne
 
@@ -29,7 +29,7 @@ Les nouvelles routes ont besoin de la migration 002. Sans elle, l’application 
 
 Après enregistrement, seuls les quatre derniers caractères sont affichés. La clé complète n’est pas relisible depuis l’interface ou une réponse d’API. Le champ est vidé après soumission et n’est pas conservé dans localStorage/sessionStorage/cookie. Il faut la saisir à nouveau pour remplacer la clé ou modifier son modèle.
 
-**Supprimer ma clé personnelle** retire la copie chiffrée de CV-ATS, après confirmation. Les prochaines analyses utiliseront alors la clé du site si elle existe ; sinon, une clé personnelle sera demandée. La suppression dans CV-ATS ne révoque pas la clé chez Google : pour cela, la supprimer/révoquer dans AI Studio. La suppression du compte CV-ATS supprime aussi sa clé enregistrée.
+**Supprimer ma clé personnelle** retire la copie chiffrée de CV-ATS, après confirmation. Les prochaines analyses utiliseront alors la clé du site si elle existe et si le quota le permet ; sinon, une clé personnelle sera demandée. La suppression dans CV-ATS ne révoque pas la clé chez Google : pour cela, la supprimer/révoquer dans AI Studio. La suppression du compte CV-ATS supprime aussi sa clé enregistrée.
 
 Une requête déjà partie continue avec la clé choisie au début : remplacer/supprimer une clé ou désactiver un compte n’annule pas rétroactivement cette requête.
 
@@ -40,19 +40,19 @@ Une requête déjà partie continue avec la clé choisie au début : remplacer/s
 | Clé personnelle enregistrée | Utilisée pour la génération et l’audit, avec le modèle personnel ou le modèle par défaut |
 | Clé personnelle invalide, quota Google atteint, modèle inaccessible ou erreur réseau | Message d’erreur ; **aucun essai avec la clé du site** |
 | Clé personnelle indéchiffrable / secret serveur absent | Analyse refusée ; **aucun essai avec la clé du site** |
-| Aucune clé personnelle et `GEMINI_API_KEY` présente | Utilisation de la clé partagée du site |
+| Aucune clé personnelle et `GEMINI_API_KEY` présente | Utilisation de la clé partagée du site, sous réserve des quotas internes |
 | Aucune clé personnelle et aucune clé du site | Invitation à ajouter une clé personnelle dans Mon compte |
 | Supabase indisponible pendant la sélection de clé | Analyse refusée, sans appel Gemini |
 
 Une clé personnelle fonctionne même si `GEMINI_API_KEY` n’est pas définie sur Vercel. L’accès au site reste réservé aux comptes créés par l’administrateur, quelle que soit la clé.
 
-## Aucune limite d’utilisation IA ajoutée par CV-ATS
+## Quotas partagés et limites Google
 
-Il n’y a plus de quota mensuel par compte, de budget quotidien partagé ni de limite de fréquence IA interne. Cela vaut pour **tous les utilisateurs et les deux sources de clé**. L’admin conserve les contrôles d’accès (activer/désactiver/supprimer un compte) et les statistiques, mais ne règle plus de plafond.
+L’admin règle un quota mensuel par compte et un plafond quotidien pour les appels avec la clé du site. Les clés personnelles ne consomment pas ces quotas. Une valeur nulle impose une clé personnelle. Voir `QUOTAS-IA.md`.
 
 Les limites **Google Gemini** s’appliquent toujours au projet associé à la clé, selon le modèle et l’offre. Plusieurs clés d’un même projet partagent ses limites : créer simplement une autre clé du même projet ne procure pas un quota indépendant. L’usage éventuel payant relève du projet Google concerné. Aucun contournement ni rotation de clés automatique n’est mis en place.
 
-Cette suppression concerne les quotas d’utilisation IA. Les contraintes techniques existantes restent nécessaires au traitement : import de 4 Mo, tailles des textes, durée maximale d’une requête, longueur de réponse et limite de 20 sauvegardes par compte. Un scan déclenche un appel ; une optimisation jusqu’à deux (génération puis audit). Ce nombre décrit le fonctionnement d’une action, pas un plafond d’usage du compte.
+L’exemption des clés personnelles concerne uniquement les quotas internes. Les contraintes techniques existantes restent nécessaires au traitement : import de 4 Mo, tailles des textes, durée maximale d’une requête, longueur de réponse et limite de 20 sauvegardes par compte. Un scan déclenche un appel ; une optimisation jusqu’à deux (génération puis audit). Ce nombre décrit le fonctionnement d’une action, pas un plafond d’usage du compte.
 
 ## Suivi de consommation
 

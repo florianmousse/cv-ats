@@ -66,7 +66,7 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     if(path==='/rest/v1/cvats_personal_keys')return Response.json(null);
     if(path.includes('/rpc/')){
       const name=path.split('/').pop()!;events.push(name);const args=JSON.parse(String(init?.body));
-      if(name==='cvats_begin_run'){assert.equal(args.p_user,authUser.id);ordinal=0;return Response.json('00000000-0000-4000-8000-000000000009');}
+      if(name==='cvats_admit_run'){assert.equal(args.p_user,authUser.id);ordinal=0;return Response.json('00000000-0000-4000-8000-000000000009');}
       if(name==='cvats_start_call')return Response.json(++ordinal);
       if(name==='cvats_record_call')reported.push(args);
       if(name==='cvats_finish')assert.ok(args.p_run);

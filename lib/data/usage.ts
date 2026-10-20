@@ -1,26 +1,37 @@
 import { adminClient } from '@/lib/auth/supabase';
 import { PublicError } from '@/lib/http';
 
-export type UserUsage = { userId: string; attempted: number; tokens: number; unknownCalls: number; month: string; sharedCalls:number; personalCalls:number; sharedTokens:number; personalTokens:number; pending:number; hasPersonalKey:boolean };
-export type AdminUsage = { month: string; models: Array<{ model: string; source:'shared'|'personal'; attempted: number; tokens: number; prompt: number|null; output: number|null; thought: number|null; unknown: number; pending: number; failed: number }> };
+export type SharedQuota = {limit:number;override:number|null;defaultLimit:number;used:number;dailyLimit:number;dailyUsed:number;resetAt:string;dailyResetAt:string};
+export type UserUsage = { quota:SharedQuota; userId: string; attempted: number; tokens: number; unknownCalls: number; month: string; sharedCalls:number; personalCalls:number; sharedTokens:number; personalTokens:number; pending:number; hasPersonalKey:boolean };
+export type AdminUsage = { quota:SharedQuota; month: string; models: Array<{ model: string; source:'shared'|'personal'; attempted: number; tokens: number; prompt: number|null; output: number|null; thought: number|null; unknown: number; pending: number; failed: number }> };
 
 export function dataError(error: { message?: string; code?: string } | null) {
   if (!error) return;
   const message = error.message ?? '';
+  if (message.includes('CVATS_USER_QUOTA')) throw new PublicError('Ton quota mensuel pour la clé du site ne permet plus cette analyse. Ajoute ta clé Gemini dans Mon compte pour continuer, ou attends le renouvellement du quota.', 429);
+  if (message.includes('CVATS_GLOBAL_QUOTA')) throw new PublicError('Le quota quotidien de la clé du site ne permet plus cette analyse. Ajoute ta clé Gemini dans Mon compte pour continuer, ou réessaie après minuit UTC.', 429);
   if (message.includes('CVATS_FORBIDDEN')) throw new PublicError('Ce compte n’est pas autorisé à effectuer cette action.', 403);
   if (message.includes('CVATS_SAVE_LIMIT')) throw new PublicError('Tu as atteint les 20 sauvegardes. Supprime une ancienne version pour en ajouter une.', 409);
   if (message.includes('CVATS_NOT_FOUND')) throw new PublicError('Compte introuvable.', 404);
-  throw new PublicError('Le service de sauvegardes et de suivi est indisponible. Vérifie notamment que la migration SQL a été exécutée dans Supabase.', 503);
+  throw new PublicError('Le service de sauvegardes et de suivi est indisponible. Vérifie notamment que les migrations SQL 001 à 003 ont été exécutées dans Supabase.', 503);
 }
 export async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await adminClient().rpc(name, args);
   dataError(error);
   return data as T;
 }
-export function userUsage(ids: string[]) { return rpc<UserUsage[]>('cvats_user_usage', { p_users: ids }); }
-export function adminUsage() { return rpc<AdminUsage>('cvats_admin_usage'); }
+function requireQuota(value: {quota?:SharedQuota}) {
+  if (!value.quota) throw new PublicError('Les quotas IA ne sont pas configurés. Applique la migration SQL 003 dans Supabase.',503);
+}
+export async function userUsage(ids: string[]) {
+  const users=await rpc<UserUsage[]>('cvats_user_usage', { p_users: ids });
+  users.forEach(requireQuota);return users;
+}
+export async function adminUsage() {
+  const usage=await rpc<AdminUsage>('cvats_admin_usage');requireQuota(usage);return usage;
+}
 export function beginRun(user: string, mode: 'scan' | 'optimize', model: string, source:'personal'|'shared') {
-  return rpc<string>('cvats_begin_run', { p_user: user, p_mode: mode, p_model: model, p_source:source });
+  return rpc<string>('cvats_admit_run', { p_user: user, p_mode: mode, p_model: model, p_source:source });
 }
 export function finish(run: string, success: boolean) { return rpc('cvats_finish', { p_run: run, p_success: success }); }
 

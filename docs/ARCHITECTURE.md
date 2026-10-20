@@ -52,21 +52,21 @@ Supabase Auth conserve les comptes. Les métadonnées serveur `app_metadata` con
 La déconnexion, la désactivation/réactivation et les changements de mot de passe changent la version d’accès. Une session ancienne est donc refusée à la prochaine requête, même si son JWT n’est pas encore expiré. La session en cookie dure au maximum une heure ; il n’y a pas de renouvellement automatique.
 
 
-## Sauvegardes, clés et consommation (1.3)
+## Sauvegardes, clés et consommation (1.4)
 
-- `001_saves_and_quotas.sql` est la migration historique de départ, conservée telle quelle. Elle doit être suivie de `002_personal_keys_no_quotas.sql`, qui désactive toutes les limites IA et ajoute le stockage des clés personnelles.
+- `001_saves_and_quotas.sql` est la migration historique de départ, conservée telle quelle. Elle doit être suivie de `002_personal_keys_no_quotas.sql`, qui ajoute les clés personnelles, puis de `003_shared_key_quotas.sql`, qui limite uniquement la clé partagée.
 - `lib/data/saves.ts`, `/api/cvs`, `/api/cvs/[id]` : snapshots validés, accès par jeton utilisateur sous RLS et filtre propriétaire explicite.
 - `lib/keys/crypto.ts` : chiffrement AES-256-GCM, nonce aléatoire, identifiant utilisateur authentifié. Le secret réside dans `API_KEY_ENCRYPTION_SECRET`.
 - `lib/keys/personal.ts`, `/api/account/gemini` : lecture de statut masqué, enregistrement/remplacement et suppression de sa propre clé. La sélection de clé utilise une lecture serveur privilégiée filtrée par l’identifiant du compte authentifié. Une erreur ne permet jamais de supposer l’absence de clé personnelle.
 - `lib/data/usage.ts` : enregistrement de l’analyse, suivi de chaque requête fournisseur et clôture. Les réponses Gemini sont observées avant parsing/validation, audit compris. Seules les métadonnées sont enregistrées, avec `key_source`.
 - `/api/usage` : consommation et configuration masquée de la personne connectée.
-- `/api/admin/usage`, `/api/admin/users` : statistiques par modèle, source de clé et utilisateur. Les anciennes mutations de quotas retournent 410 après vérification du rôle admin.
-- `components/usage-card.tsx`, `app/admin/usage-dashboard.tsx`, `app/compte/gemini-form.tsx` : interfaces sans plafond ni solde de quota inventé.
+- `/api/admin/usage`, `/api/admin/users` : statistiques par modèle, source de clé et utilisateur. Les mutations admin valident les plafonds et appellent des RPC réservées au serveur.
+- `components/usage-card.tsx`, `app/admin/usage-dashboard.tsx`, `app/compte/gemini-form.tsx` : interfaces affichant les quotas partagés et invitant à configurer une clé personnelle.
 - `lib/docx.ts` : export Word navigateur, sans API ni consommation Gemini.
 
 Flux d’analyse : authentification/droits → validation des entrées → sélection/déchiffrement de la clé → ouverture d’une ligne de suivi → tentative enregistrée avant chaque requête Gemini → métadonnées de réponse → validation/audit → clôture. La même clé et le même modèle sont utilisés pour toute l’analyse. L’authentification est vérifiée avant la lecture du corps. Aucune clé ne vient du corps de `/api/analyze`.
 
-Le suivi n’effectue plus de réservation de budget ni de test d’un seuil. Les champs historiques `reserved_calls` et `charged_calls` décrivent le nombre d’appels prévu/constaté d’une action ; les nouvelles statistiques utilisent les lignes de tentatives effectives. `cvats_begin_run` ne consulte aucune table de quota. Le nom historique `cvats_reserve` reste comme fonction de compatibilité sans seuil pour les anciennes requêtes pendant une mise à jour. Les fonctions de suivi sont réservées à `service_role`, jamais à un jeton utilisateur.
+La RPC `cvats_admit_run` exige la migration 003 et délègue à `cvats_begin_run`. Pour une clé partagée, une transaction verrouille la politique, vérifie les limites et réserve 1 ou 2 appels. Une clôture rend les appels non tentés ; un crash conserve la réservation. Les anciens points d’entrée restent soumis aux mêmes plafonds. Les clés personnelles sont suivies mais ne consomment aucun quota interne. Les fonctions sont réservées à `service_role`. Voir `QUOTAS-IA.md`.
 
 Les enregistrements de clés sont inaccessibles aux rôles navigateur, même chiffrés. Seuls un statut, le modèle, la date et les quatre derniers caractères peuvent être renvoyés à leur propriétaire. Un incident de déchiffrement ou de base bloque l’analyse, sans utiliser la clé partagée. Les clés ne sont jamais incluses dans les statistiques.
 
