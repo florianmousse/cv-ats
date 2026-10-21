@@ -8,9 +8,16 @@ export const cvSchema = z.object({
   competences:z.array(text).max(100),
   formation:z.array(z.object({intitule:text, etablissement:text, dates:text}).strict()).max(30)
 }).strict();
-export const scanSchema=z.object({score:z.number().int().min(0).max(100),pointsForts:z.array(text).max(30),problemes:z.array(z.object({severite:z.enum(['élevée','moyenne','faible']),texte:text}).strict()).max(30),motsClesManquants:z.array(text).max(60),recommandations:z.array(text).max(30)}).strict();
+const criterion=z.number().int().min(0).max(20);
+export const scanSchema=z.object({score:z.number().int().min(0).max(100),criteres:z.object({identite:criterion,sections:criterion,structure:criterion,precision:criterion,pertinence:criterion}).strict().optional(),pointsForts:z.array(text).max(30),problemes:z.array(z.object({severite:z.enum(['élevée','moyenne','faible']),texte:text,extrait:text.optional(),correction:text.optional()}).strict()).max(30),motsClesManquants:z.array(text).max(60),recommandations:z.array(text).max(30)}).strict();
 export type CV=z.infer<typeof cvSchema>;
 export type Scan=z.infer<typeof scanSchema>;
+/** Only quote text that is actually in the supplied CV; never invent evidence. */
+export function groundScan(scan:Scan,source:string):Scan{
+ const normalize=(s:string)=>s.replace(/\s+/g,' ').trim();
+ return {...scan,score:scan.criteres?Object.values(scan.criteres).reduce((sum,n)=>sum+n,0):scan.score,
+  problemes:scan.problemes.map(p=>({...p,extrait:p.extrait&&normalize(p.extrait)&&normalize(source).includes(normalize(p.extrait))?p.extrait:undefined}))};
+}
 export function parseModelJSON(raw:string):unknown {
   try { return JSON.parse(raw); } catch { /* tolerate prose and fences */ }
   for(let start=raw.indexOf('{');start>=0;start=raw.indexOf('{',start+1)) {

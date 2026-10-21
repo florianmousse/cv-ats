@@ -2,7 +2,7 @@
 import {useEffect,useState,type FormEvent} from 'react';
 import type {OptimizedResult,SavedCV,SavedSummary} from '@/lib/data/saves';
 
-export default function SavedCVs({cv,job,result,disabled,onLoad,onWorking}:{cv:string;job:string;result:OptimizedResult|null;disabled:boolean;onLoad:(save:SavedCV)=>void;onWorking:(busy:boolean)=>void}){
+export default function SavedCVs({cv,job,result,disabled,onLoad,onWorking,saveIntent=0}:{saveIntent?:number;cv:string;job:string;result:OptimizedResult|null;disabled:boolean;onLoad:(save:SavedCV)=>void;onWorking:(busy:boolean)=>void}){
  const [saves,setSaves]=useState<SavedSummary[]>([]),[selected,setSelected]=useState(''),[name,setName]=useState('');
  const [includeJob,setIncludeJob]=useState(false),[includeResult,setIncludeResult]=useState(false);
  const [loading,setLoading]=useState(true),[working,setWorking]=useState(false),[revision,setRevision]=useState(0),[error,setError]=useState(''),[notice,setNotice]=useState('');
@@ -28,12 +28,14 @@ export default function SavedCVs({cv,job,result,disabled,onLoad,onWorking}:{cv:s
   const r=await fetch(`/api/cvs/${selected}`,{method:'DELETE'});const body=await r.json();if(!r.ok)throw new Error(body.error);
   setSelected('');setRevision(v=>v+1);setNotice('Sauvegarde supprimée.');
  }catch(e){setError(e instanceof Error?e.message:'Suppression impossible.');}finally{stop();}}
+ const [lastSaveIntent,setLastSaveIntent]=useState(saveIntent);
+ if(lastSaveIntent!==saveIntent){setLastSaveIntent(saveIntent);setIncludeResult(true);setIncludeJob(true);}
  const locked=disabled||working;
  return <section className="saves-panel" aria-labelledby="saves-title" aria-busy={working||loading}>
   <div className="panel-heading"><div><h2 id="saves-title">Mes sauvegardes</h2><p>Enregistrement volontaire dans Supabase. Chaque version reste privée à ton compte.</p></div><span>{saves.length} / 20 versions</span></div>
   <div className="saves-grid"><form onSubmit={save}><label htmlFor="save-name">Nom de la nouvelle version</label><input id="save-name" value={name} onChange={e=>setName(e.target.value)} maxLength={100} required disabled={locked} placeholder="Ex. CV développeur — septembre"/>
    <label className="checkbox-label"><input type="checkbox" checked={includeJob} onChange={e=>setIncludeJob(e.target.checked)} disabled={locked}/>Conserver aussi l’annonce</label>
-   <label className="checkbox-label"><input type="checkbox" checked={includeResult} onChange={e=>setIncludeResult(e.target.checked)} disabled={locked||!result}/>Conserver aussi le CV optimisé et ses exports{!result&&' (après optimisation)'}</label>
+   <label className="checkbox-label"><input type="checkbox" checked={includeResult} onChange={e=>setIncludeResult(e.target.checked)} disabled={locked||!result}/>Conserver aussi le CV édité et son style{!result&&' (après optimisation)'}</label>
    <button className="secondary-button" disabled={locked||cv.trim().length<30||saves.length>=20}>{working?'Opération en cours…':'Enregistrer une nouvelle version'}</button>
   </form><div><label htmlFor="saved-cv">Charger une version enregistrée</label><select id="saved-cv" value={selected} onChange={e=>setSelected(e.target.value)} disabled={locked||loading}>
    <option value="">{loading?'Chargement…':'Choisir une sauvegarde'}</option>{saves.map(s=><option key={s.id} value={s.id}>{s.name} — {new Date(s.created_at).toLocaleDateString('fr-FR')}</option>)}</select>

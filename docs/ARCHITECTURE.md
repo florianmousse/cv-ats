@@ -8,7 +8,7 @@
 4. La route valide les entrées et appelle `askGemini` avec les consignes et les données séparées. Les textes utilisateur sont explicitement traités comme des données non fiables.
 5. Gemini renvoie du JSON. `lib/cv.ts` extrait un objet même entouré de texte, puis Zod valide le schéma.
 6. L’optimisation vérifie les champs factuels et les chiffres, puis appelle Gemini une seconde fois pour un audit sémantique. Un échec ne produit pas de faux résultat de remplacement.
-7. Le navigateur affiche les résultats et génère, sur demande, un PDF avec pdfmake.
+7. Le navigateur ouvre le résultat dans l’éditeur local. Chaque modification met à jour le résultat parent utilisé pour les sauvegardes et les exports. L’aperçu PDF et le téléchargement utilisent le même générateur pdfmake.
 
 ## Fichiers
 
@@ -28,7 +28,10 @@
 | `lib/gemini.ts` | Appel REST `generateContent`, clé en en-tête serveur, réponses JSON et erreurs Gemini. |
 | `lib/cv.ts` | Types, schémas, parsing, contrôle des champs, assemblage texte brut. |
 | `lib/http.ts` | Réponses non mises en cache, taille maximale des requêtes et contrôle d’origine. |
-| `lib/pdf.ts` | Styles Moderne, Finance, Minimal et PDF à texte sélectionnable. |
+| `lib/pdf.ts` | Générateur commun aperçu/export, modèles Essentiel, Classique et Éditorial, PDF à texte sélectionnable. |
+| `components/resume-editor.tsx`, `components/resume-preview.tsx` | Formulaire structuré, styles, offre, comparaison, aperçu HTML et PDF. |
+| `lib/resume-editor.ts`, `lib/presentation.ts` | Historique immuable, réordonnancement, mots-clés et schéma du style sauvegardé. |
+| `app/compte/settings.tsx`, `components/private-header.tsx`, `components/account-nav.tsx` | Panneaux du compte et navigation partagée. |
 | `components/ui/select.tsx` | Sélecteur accessible basé sur Radix. |
 | `public/fonts/` | Police serif et licence ; Roboto est livré avec pdfmake. |
 | `.env.example` | Noms des variables, sans secret. |
@@ -71,3 +74,9 @@ La RPC `cvats_admit_run` exige la migration 003 et délègue à `cvats_begin_run
 Les enregistrements de clés sont inaccessibles aux rôles navigateur, même chiffrés. Seuls un statut, le modèle, la date et les quatre derniers caractères peuvent être renvoyés à leur propriétaire. Un incident de déchiffrement ou de base bloque l’analyse, sans utiliser la clé partagée. Les clés ne sont jamais incluses dans les statistiques.
 
 Voir `CLES-PERSONNELLES.md` pour la migration, le routage, le secret de chiffrement, les limites réelles Gemini et les contrôles après déploiement.
+
+## Éditeur et diagnostic (1.5)
+
+Le style est stocké dans le champ facultatif `result.presentation` du JSON de sauvegarde existant. Les anciennes versions sont compatibles, sans migration supplémentaire. L’historique d’édition est borné et reste en mémoire ; aucune modification n’appelle Gemini. Les URLs blob du PDF sont révoquées au remplacement ou au démontage du composant ; un aperçu périmé demande une régénération. Les champs de présentation sont énumérés et validés, sans CSS arbitraire.
+
+Les critères détaillés du scan restent facultatifs pour les réponses anciennes. `groundScan` additionne les critères fournis et ne conserve que les citations présentes dans la source après normalisation des espaces. Les corrections restent des conseils, sans mutation automatique du CV.

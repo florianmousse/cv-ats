@@ -2,6 +2,10 @@
 
 Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et clés Gemini personnelles chiffrées dans Supabase. Quotas configurables pour la clé partagée uniquement.
 
+## Version 1.5 : éditeur de CV et navigation simplifiée
+
+Après optimisation, édite le contenu dans un atelier avec aperçu, trois modèles, couleurs, densité, annuler/rétablir et comparaison avec la source. Le texte et le style sont conservés dans les versions sauvegardées. Le diagnostic détaille ses critères et ses conseils ; Mon compte distingue IA/consommation et sécurité. Voir [le guide de l’éditeur](docs/EDITEUR-CV.md). Aucune migration supplémentaire après 003.
+
 ## Version 1.4 : quotas partagés et atelier de mots-clés
 
 **Mise à jour : [docs/QUOTAS-IA.md](docs/QUOTAS-IA.md)**. Appliquer la migration 003 après 001 et 002, puis redéployer. L’admin configure le plafond quotidien du site, le quota mensuel par défaut et les exceptions par compte. Les clés personnelles restent prioritaires et hors quota interne. L’atelier propose aussi un repérage local de mots-clés et un diagnostic organisé par priorité.
@@ -61,7 +65,7 @@ Suivre **[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md)** : création de clé Gemini
 - Atelier local de mots-clés : quatre domaines ou liste personnalisée, repérage dans le CV et l’annonce sans appel IA.
 - Tokens réellement déclarés par Gemini, avec indication des appels sans total connu et liens AI Studio.
 - Export Word modifiable dans le navigateur, sans appel IA supplémentaire.
-- Copie en texte brut et téléchargement PDF : Moderne sobre, Finance classique, Minimal aéré.
+- Copie en texte brut et téléchargement PDF : Essentiel, Classique et Éditorial, avec couleur et densité au choix.
 - Vrai texte PDF incorporé, une colonne, sans image ni tableau. Le téléchargement est généré dans le navigateur.
 - Gestion des erreurs : clé absente, quotas, modèle inaccessible, réponse incomplète, fichier illisible, délai dépassé.
 
@@ -98,6 +102,8 @@ npm run build
 Les tests Gemini utilisent des réponses simulées uniquement dans les fichiers de test : aucune clé ni facturation nécessaire pour ces tests.
 
 ## Documentation
+
+- [Éditeur, diagnostic et nouvelle navigation](docs/EDITEUR-CV.md)
 
 - [Quotas de la clé du site et migration 003](docs/QUOTAS-IA.md)
 

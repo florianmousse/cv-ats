@@ -2,23 +2,23 @@
 import {useRef,useState} from 'react';
 import SavedCVs from '@/components/saved-cvs';
 import UsageCard from '@/components/usage-card';
-import AccountNav from '@/components/account-nav';
+import PrivateHeader from '@/components/private-header';
+import ResumeEditor from '@/components/resume-editor';
+import type {OptimizedResult} from '@/lib/data/saves';
 import KeywordWorkshop from '@/components/keyword-workshop';
 import ScanReport from '@/components/scan-report';
 import type { SiteUser } from '@/lib/auth/session';
-import {ArrowDown,ArrowRight,Check,CheckCheck,Copy,Download,FileText,Info,LoaderCircle,ScanLine,ShieldCheck,Sparkles,Upload,X,LockKeyhole,ChevronRight} from 'lucide-react';
-import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
-import {CV,Scan,labels,toPlainText} from '@/lib/cv';
-import type {PDFStyle} from '@/lib/pdf';
-type Result={kind:'scan';data:Scan}|{kind:'optimize';data:CV;headings:typeof labels};
+import {ArrowRight,Check,FileText,Info,LoaderCircle,ScanLine,ShieldCheck,Sparkles,Upload,X,LockKeyhole,ChevronRight} from 'lucide-react';
+import {type Scan} from '@/lib/cv';
+type Result={kind:'scan';data:Scan}|OptimizedResult;
 const education="Un ATS (Applicant Tracking System) est un logiciel que les entreprises utilisent pour recevoir, trier et classer les candidatures. Quand tu postules en ligne, ton CV passe souvent par lui avant qu'un humain ne le voie. Il lit le texte de ton CV, le compare à l'annonce, et classe les candidats. L'ATS ne te refuse presque jamais tout seul — il y a toujours un recruteur derrière —, mais un CV mal formaté ou pauvre en mots-clés peut être classé si bas qu'il n'est jamais consulté. Le but n'est pas de tromper le logiciel, mais que ton vrai profil soit bien lu et bien classé.";
 export default function Workspace({user}:{user:SiteUser}){
- const [cv,setCV]=useState(''),[job,setJob]=useState(''),[busy,setBusy]=useState<''|'import'|'optimize'|'scan'>(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[result,setResult]=useState<Result|null>(null),[style,setStyle]=useState<PDFStyle>('modern'),[pdfBusy,setPdfBusy]=useState(false),[copied,setCopied]=useState(false),[filename,setFilename]=useState('');
- const [saving,setSaving]=useState(false),[usageRevision,setUsageRevision]=useState(0),[docxBusy,setDocxBusy]=useState(false);
+ const [cv,setCV]=useState(''),[job,setJob]=useState(''),[busy,setBusy]=useState<''|'import'|'optimize'|'scan'>(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[result,setResult]=useState<Result|null>(null),[filename,setFilename]=useState('');
+ const [saving,setSaving]=useState(false),[usageRevision,setUsageRevision]=useState(0),[resultRevision,setResultRevision]=useState(0),[saveIntent,setSaveIntent]=useState(0);
  const fileInput=useRef<HTMLInputElement>(null);const resultRef=useRef<HTMLElement>(null);
- function changed(value:string,which:'cv'|'job'){if(which==='cv'){setCV(value);setFilename('');}else setJob(value);setResult(null);setError('');setNotice('');}
+ function changed(value:string,which:'cv'|'job'){if(result?.kind==='optimize'&&!window.confirm('Modifier la source ou l’annonce effacera la version en cours d’édition. Enregistre-la d’abord pour la conserver. Continuer ?'))return;if(which==='cv'){setCV(value);setFilename('');}else setJob(value);setResult(null);setError('');setNotice('');}
  async function importFile(file?:File){
-  if(!file)return;setError('');setNotice('');
+  if(!file)return;if(result?.kind==='optimize'&&!window.confirm('Importer un autre CV remplacera la version en cours d’édition. Enregistre-la d’abord pour la conserver. Continuer ?')){if(fileInput.current)fileInput.current.value='';return;}setError('');setNotice('');
   if(!/\.(pdf|docx)$/i.test(file.name)){setError('Choisis un fichier .pdf ou .docx.');return;}
   if(file.size>4*1024*1024){setError('Le fichier doit faire moins de 4 Mo.');return;}
   setBusy('import');
@@ -26,21 +26,21 @@ export default function Workspace({user}:{user:SiteUser}){
   try{const body=new FormData();body.append('file',file);const response=await fetch('/api/import',{method:'POST',body,signal:controller.signal});const data=await response.json() as {text:string;error:string};if(!response.ok)throw new Error(data.error);setCV(data.text);setFilename(file.name);setResult(null);setNotice('Texte importé. Vérifie son contenu avant de lancer l’analyse.');}catch(e){setError(e instanceof Error&&e.name!=='AbortError'?e.message:'L’import n’a pas abouti. Réessaie ou colle le texte manuellement.');}finally{clearTimeout(timer);setBusy('');if(fileInput.current)fileInput.current.value='';}
  }
  async function analyze(mode:'optimize'|'scan'){
+  if(result?.kind==='optimize'&&!window.confirm('Relancer une analyse remplacera la version en cours d’édition. Enregistre-la d’abord si tu veux la conserver. Continuer ?'))return;
   setError('');setNotice('');if(cv.trim().length<30){setError('Ajoute ton CV (au moins 30 caractères) avant de lancer l’analyse.');return;}if(mode==='optimize'&&job.trim().length<30){setError('Ajoute l’annonce d’emploi (au moins 30 caractères) pour optimiser ton CV.');return;}
   setBusy(mode);setResult(null);const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
-  try{const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,cv,job}),signal:controller.signal});const data=await response.json() as Result & {error:string};if(!response.ok)throw new Error(data.error);setResult(data);setTimeout(()=>resultRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}catch(e){setError(e instanceof Error&&e.name!=='AbortError'?e.message:'L’analyse a pris trop de temps. Réessaie.');}finally{clearTimeout(timer);setBusy('');setUsageRevision(v=>v+1);}
+  try{const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode,cv,job}),signal:controller.signal});const data=await response.json() as Result & {error:string};if(!response.ok)throw new Error(data.error);setResult(data.kind==='optimize'?{kind:'optimize',data:data.data,headings:data.headings}:{kind:'scan',data:data.data});setResultRevision(v=>v+1);setTimeout(()=>resultRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),60);}catch(e){setError(e instanceof Error&&e.name!=='AbortError'?e.message:'L’analyse a pris trop de temps. Réessaie.');}finally{clearTimeout(timer);setBusy('');setUsageRevision(v=>v+1);}
  }
- async function word(){if(result?.kind!=='optimize')return;setDocxBusy(true);setError('');try{const {downloadDocx}=await import('@/lib/docx');await downloadDocx(result.data,result.headings);}catch{setError('Le document Word n’a pas pu être généré. Réessaie.');}finally{setDocxBusy(false);}}
- async function copy(){if(result?.kind!=='optimize')return;try{await navigator.clipboard.writeText(toPlainText(result.data,result.headings));setCopied(true);setTimeout(()=>setCopied(false),2500);}catch{setError('La copie automatique est indisponible. Sélectionne le texte du CV pour le copier.');}}
- async function download(){if(result?.kind!=='optimize')return;setPdfBusy(true);setError('');try{const {downloadCV}=await import('@/lib/pdf');await downloadCV(result.data,style,result.headings);}catch{setError('Le PDF n’a pas pu être généré. Réessaie ; le texte reste copiable.');}finally{setPdfBusy(false);}}
+ function saveEditedVersion(){setSaveIntent(v=>v+1);const drawer=document.getElementById("saved-versions") as HTMLDetailsElement|null;if(drawer){drawer.open=true;drawer.scrollIntoView({behavior:"smooth",block:"start"});document.getElementById("save-name")?.focus({preventScroll:true});}}
  return <div className="app-shell">
-  <header className="site-header"><div className="header-inner"><a href="#" className="brand" aria-label="CV-ATS, accueil"><span className="brand-icon"><FileText size={22}/></span>CV<span className="brand-dash">—</span>ATS</a><nav aria-label="Navigation principale"><a href="#atelier" className="nav-active">L’atelier CV</a><a href="#mots-cles">Les mots-clés</a><a href="#comprendre">Comprendre les ATS <ArrowDown size={14}/></a></nav><AccountNav user={user}/></div></header>
+  <PrivateHeader user={user}/>
   <main>
    <section className="workspace" id="atelier">
     <div className="intro"><div><p className="eyebrow"><span/> UN CV FIDÈLE. MIEUX COMPRIS.</p><h1>Ton parcours mérite<br className="mobile-break"/> d’être <span>bien lu.</span></h1><p className="intro-description">Adapte ton CV à une annonce, sans jamais inventer ton expérience.</p></div><div className="honesty-note"><ShieldCheck size={21}/><div><strong>100 % ton parcours</strong><span>On reformule. On n’invente rien.</span></div></div></div>
+    <div className="workspace-shortcuts"><a href="#mots-cles">Explorer les mots-clés <ArrowRight size={13}/></a><a href="#comprendre">Comprendre les ATS</a></div>
     <div className="journey"><span><b>01</b> Ajoute ton CV</span><span><b>02</b> Repère les améliorations</span><span><b>03</b> Exporte ta candidature</span></div>
-    <details className="saved-drawer"><summary>Mes versions de CV <span>Enregistrer ou retrouver un parcours</span></summary>
-    <SavedCVs cv={cv} job={job} result={result?.kind==='optimize'?result:null} disabled={!!busy} onWorking={setSaving} onLoad={saved=>{setCV(saved.cv);setJob(saved.job);setResult(saved.result);setFilename('');setError('');setNotice('');}}/>
+    <details className="saved-drawer" id="saved-versions"><summary>Mes versions de CV <span>Enregistrer ou retrouver un parcours</span></summary>
+    <SavedCVs saveIntent={saveIntent} cv={cv} job={job} result={result?.kind==='optimize'?result:null} disabled={!!busy} onWorking={setSaving} onLoad={saved=>{setCV(saved.cv);setJob(saved.job);setResult(saved.result);setResultRevision(v=>v+1);setFilename('');setError('');setNotice('');}}/>
     </details>
     <div className="editors">
      <article className="editor-card"><div className="editor-heading"><div className="editor-title"><span className="step">01</span><label htmlFor="cv">Ton CV</label></div><button className="import-button" disabled={!!busy||saving} onClick={()=>fileInput.current?.click()}>{busy==='import'?<LoaderCircle size={16} className="spin"/>:<Upload size={16}/>}Importer un fichier</button><input ref={fileInput} type="file" accept=".pdf,.docx" onChange={e=>importFile(e.target.files?.[0])} className="sr-only" tabIndex={-1} aria-label="Importer un CV au format PDF ou DOCX"/></div>
@@ -55,11 +55,11 @@ export default function Workspace({user}:{user:SiteUser}){
     <div className="privacy-line"><ShieldCheck size={14}/><strong>Aucune sauvegarde automatique.</strong><span>Tu choisis les versions à conserver.</span><a href="#confidentialite">En savoir plus</a></div>
     {error&&<div role="alert" className="message error"><Info size={18}/><p>{error}</p><button aria-label="Fermer le message d’erreur" onClick={()=>setError('')}><X size={16}/></button></div>}
     {notice&&<div role="status" className="message success"><Check size={18}/><p>{notice}</p></div>}
-    <section ref={resultRef} className={'result-area '+(result?'has-result':'')} aria-label="Résultat" aria-live="polite" aria-busy={!!busy}>
+    <section ref={resultRef} className={'result-area '+(result?'has-result':'')+(result?.kind==='optimize'?' builder-result':'')} aria-label="Résultat" aria-live="polite" aria-busy={!!busy}>
      {!result&&!busy&&<div className="empty-result"><span className="empty-icon"><FileText size={26}/><span><Check size={10}/></span></span><h2>La prochaine version de ton CV commence ici.</h2><p>Ajoute tes textes, puis choisis une optimisation ou un scan.</p><div className="empty-features"><span><Check size={14}/> Fidèle à ton expérience</span><span><Check size={14}/> Lisible par les ATS</span><span><Check size={14}/> Prêt à copier ou télécharger</span></div></div>}
      {busy&&<div className="empty-result loading-result"><LoaderCircle className="spin" size={30}/><h2>{busy==='import'?'Extraction du texte…':busy==='scan'?'Lecture attentive de ton CV…':'Reformulation et vérification de ton CV…'}</h2><p>{busy==='import'?'Ton fichier est traité en mémoire.':'Cela peut prendre jusqu’à une minute. Garde cette page ouverte.'}</p></div>}
-     {result?.kind==='optimize'&&<><div className="result-heading"><div><span className="eyebrow">TON CV, OPTIMISÉ</span><h2>Le même parcours. Les bons mots.</h2></div><button className="secondary-button small" onClick={copy}>{copied?<CheckCheck size={16}/>:<Copy size={16}/>} {copied?'Copié !':'Copier'}</button></div><p className="result-note">Relis chaque formulation avant d’envoyer ton CV : tu restes la référence pour ton parcours.</p><pre className="cv-output">{toPlainText(result.data,result.headings)}</pre><div className="export-bar"><div><label id="style-label">Ton style de PDF</label><Select value={style} onValueChange={v=>setStyle(v as PDFStyle)}><SelectTrigger aria-labelledby="style-label" className="style-select"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="modern">Moderne sobre</SelectItem><SelectItem value="finance">Finance classique</SelectItem><SelectItem value="minimal">Minimal aéré</SelectItem></SelectContent></Select></div><button className="secondary-button" disabled={docxBusy} onClick={word}>{docxBusy?'Création…':'Télécharger en Word'}</button><span className="export-note">Une colonne.<br/>Du vrai texte sélectionnable.</span><button className="primary-button" disabled={pdfBusy} onClick={download}>{pdfBusy?<LoaderCircle className="spin" size={17}/>:<Download size={17}/>} {pdfBusy?'Création du PDF…':'Télécharger le PDF'}</button></div></>}
-     {result?.kind==='scan'&&<ScanReport data={result.data} hasJob={!!job}/>}
+     {result?.kind==='optimize'&&<ResumeEditor key={resultRevision} result={result} source={cv} job={job} onChange={setResult} onSave={saveEditedVersion} disabled={saving||!!busy}/>}
+     {result?.kind==='scan'&&<ScanReport data={result.data} hasJob={job.trim().length>=30} onOptimize={()=>analyze('optimize')}/>}
     </section>
    </section>
    <KeywordWorkshop cv={cv} job={job}/>

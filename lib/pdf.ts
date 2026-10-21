@@ -1,7 +1,8 @@
 import type {CV,labels} from './cv';
 import type {Content,TDocumentDefinitions} from 'pdfmake/interfaces';
+import type {ResumePresentation} from './presentation';
 export type PDFStyle='modern'|'finance'|'minimal';
-export function createDefinition(cv:CV,style:PDFStyle,headings:typeof labels):TDocumentDefinitions {
+export function createDefinition(cv:CV,style:PDFStyle,headings:typeof labels,design?:ResumePresentation):TDocumentDefinitions {
  const finance=style==='finance',minimal=style==='minimal';
  const content:Content[]=[];
  const section=(title:string)=>{
@@ -21,9 +22,9 @@ export function createDefinition(cv:CV,style:PDFStyle,headings:typeof labels):TD
  }}
  if(cv.competences.length){section(headings.competences);content.push({ul:cv.competences.map(c=>({text:c,margin:[0,0,0,3]}))});}
  if(cv.formation.length){section(headings.formation);for(const f of cv.formation)content.push({text:[f.intitule,f.etablissement,f.dates].filter(Boolean).join(' — '),margin:[0,0,0,8]});}
- return {info:{title:cv.nom?`CV — ${cv.nom}`:'CV',creator:'CV-ATS'},pageSize:'A4',pageMargins:[48,minimal?55:43,48,43],defaultStyle:{font:finance?'Serif':'Roboto',fontSize:10,lineHeight:minimal?1.45:1.25,color:'#20252a'},styles:{section:{fontSize:minimal?10:12,bold:true,color:style==='modern'?'#1f3a5f':'#111111'}},content,pageBreakBefore:(node,container)=>Boolean(node.headlineLevel===1&&container.getFollowingNodesOnPage().length===0)};
+ return {info:{title:cv.nom?`CV — ${cv.nom}`:'CV',creator:'CV-ATS'},pageSize:'A4',pageMargins:[48,design?.density==='compact'?32:minimal?55:43,48,43],defaultStyle:{font:finance?'Serif':'Roboto',fontSize:design?.density==='compact'?9:10,lineHeight:design?.density==='compact'?1.1:minimal?1.45:1.25,color:'#20252a'},styles:{section:{fontSize:minimal?10:12,bold:true,color:design?.accent??(style==='modern'?'#1f3a5f':'#111111')}},content,pageBreakBefore:(node,container)=>Boolean(node.headlineLevel===1&&container.getFollowingNodesOnPage().length===0)};
 }
-export async function downloadCV(cv:CV,style:PDFStyle,headings:typeof labels){
+export async function createCVBlob(cv:CV,style:PDFStyle,headings:typeof labels,design?:ResumePresentation):Promise<Blob>{
  const [{default:pdfMake},{default:fonts}]=await Promise.all([import('pdfmake/build/pdfmake'),import('pdfmake/build/vfs_fonts')]);
  pdfMake.addVirtualFileSystem(fonts);
  if(style==='finance'){
@@ -31,6 +32,10 @@ export async function downloadCV(cv:CV,style:PDFStyle,headings:typeof labels){
   pdfMake.addVirtualFileSystem(await response.json());
   pdfMake.addFonts({Serif:{normal:'DejaVuSerif.ttf',bold:'DejaVuSerif-Bold.ttf',italics:'DejaVuSerif.ttf',bolditalics:'DejaVuSerif-Bold.ttf'}});
  }
+ return pdfMake.createPdf(createDefinition(cv,style,headings,design)).getBlob();
+}
+export async function downloadCV(cv:CV,style:PDFStyle,headings:typeof labels,design?:ResumePresentation){
+ const blob=await createCVBlob(cv,style,headings,design);
  const filename=(cv.nom||'CV').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,70);
- await pdfMake.createPdf(createDefinition(cv,style,headings)).download(`${filename}-CV-ATS.pdf`);
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${filename}-CV-ATS.pdf`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }

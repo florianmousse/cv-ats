@@ -1,6 +1,6 @@
-# Vérifications — version 1.4
+# Vérifications — version 1.5
 
-- `npm test` : **28 tests réussis**.
+- `npm test` : **33 tests réussis**.
 - `npm run lint`, `npm run typecheck` et `npm run build` : code, types et compilation de production vérifiés.
 - Serveur de production lancé localement : la page compte redirige les visiteurs vers la connexion ; GET, PUT et DELETE sur la route des clés refusent les visiteurs avec 401 et des réponses `no-store`.
 - Les tests utilisent des comptes et clés fictifs, sans appel Gemini réel ni accès à un projet Supabase hébergé. L’application livrée ne possède aucun mode de contournement ou de démonstration.
@@ -29,7 +29,7 @@ L’atelier, le diagnostic avec données fictives, les filtres de mots-clés et 
 
 Les tests d’authentification, de révocation des sessions, d’isolation des sauvegardes, de contrôle des rôles, de parsing/validation Gemini, d’audit de fidélité et de suivi des tokens restent présents. Les API refusent l’analyse en cas d’indisponibilité de configuration/suivi, sans appeler Gemini avec une autre clé.
 
-L’export Word est relu avec Mammoth : texte, accents et dates sont conservés, sans tableau ni zone de texte flottante. Les moteurs PDF et d’import existants sont inchangés ; leur validation antérieure reste décrite dans l’historique de livraison. Les nouveaux écrans ne sont pas vérifiés visuellement dans une session connectée à un vrai compte Supabase.
+L’export Word est relu avec Mammoth : texte, accents et dates sont conservés, sans tableau ni zone de texte flottante. Le moteur PDF prend désormais en compte la présentation enregistrée ; un test génère un vrai PDF puis relit son texte avec unpdf. Le moteur d’import est inchangé. Les nouveaux écrans ne sont pas vérifiés visuellement dans une session connectée à un vrai compte Supabase.
 
 **Non effectué ici :** migration sur ton projet hébergé, appels avec tes clés réelles, validation de leurs modèles/quotas Google, déploiement sur ton compte Vercel. Le guide `CLES-PERSONNELLES.md` fournit les contrôles fonctionnels à réaliser après configuration.
 
@@ -42,3 +42,9 @@ npm run lint
 ```
 
 Le premier build crée notamment `next-env.d.ts`, exclu de l’archive comme les dépendances et les fichiers de compilation.
+
+## Éditeur et interface (1.5)
+
+Les cinq tests supplémentaires couvrent les modifications immuables, le réordonnancement, annuler/rétablir, les limites des champs, le style sauvegardé, les anciennes sauvegardes, les mots-clés locaux, la somme des critères et les extraits réellement présents. Le test PDF vérifie le contenu modifié extrait du fichier généré.
+
+Un aperçu isolé avec données fictives a permis de vérifier l’édition, les modèles, annuler/rétablir, la génération du PDF, la sauvegarde puis le rechargement du contenu et de sa couleur, les corrections filtrées et les panneaux du compte. L’éditeur et Mon compte ont aussi été inspectés à 390 px. Le lecteur PDF du navigateur intégré reste limité : le lien d’ouverture et le téléchargement sont proposés. Les données et serveurs de cet aperçu temporaire sont retirés avant livraison.
