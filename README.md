@@ -2,6 +2,10 @@
 
 Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et clés Gemini personnelles chiffrées dans Supabase. Quotas configurables pour la clé partagée uniquement.
 
+## Version 1.6 : diagnostic éditorial et exigences de l’offre
+
+Le scan examine dix axes : orthographe, typographie, volume, phrases d’expérience, réalisations, structure, dates, compétences, adéquation et clarté. Des règles locales complètent la relecture IA. Les mots-clés couvrent davantage d’outils et les versions ; un relevé séparé garde les extraits de l’annonce et les preuves du CV. Voir [le guide du diagnostic](docs/DIAGNOSTIC.md). Le scan reste à un appel IA, sans nouvelle migration.
+
 ## Version 1.5 : éditeur de CV et navigation simplifiée
 
 Après optimisation, édite le contenu dans un atelier avec aperçu, trois modèles, couleurs, densité, annuler/rétablir et comparaison avec la source. Le texte et le style sont conservés dans les versions sauvegardées. Le diagnostic détaille ses critères et ses conseils ; Mon compte distingue IA/consommation et sécurité. Voir [le guide de l’éditeur](docs/EDITEUR-CV.md). Aucune migration supplémentaire après 003.

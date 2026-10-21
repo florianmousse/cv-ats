@@ -80,3 +80,7 @@ Voir `CLES-PERSONNELLES.md` pour la migration, le routage, le secret de chiffrem
 Le style est stocké dans le champ facultatif `result.presentation` du JSON de sauvegarde existant. Les anciennes versions sont compatibles, sans migration supplémentaire. L’historique d’édition est borné et reste en mémoire ; aucune modification n’appelle Gemini. Les URLs blob du PDF sont révoquées au remplacement ou au démontage du composant ; un aperçu périmé demande une régénération. Les champs de présentation sont énumérés et validés, sans CSS arbitraire.
 
 Les critères détaillés du scan restent facultatifs pour les réponses anciennes. `groundScan` additionne les critères fournis et ne conserve que les citations présentes dans la source après normalisation des espaces. Les corrections restent des conseils, sans mutation automatique du CV.
+
+## Diagnostic éditorial (1.6)
+
+`lib/scan-prompt.ts` demande les dix contrôles et les exigences contextualisées. `lib/diagnostic-schema.ts` borne les catégories et preuves. `lib/diagnostic.ts` enrichit la réponse validée : citations, règles locales, métriques, comparaison des termes et des exigences. Ce traitement conserve le seul appel IA du scan. `components/diagnostic-details.tsx` affiche les contrôles et le relevé ; `components/scan-report.tsx` filtre les corrections. Les champs supplémentaires du scan sont facultatifs pour la compatibilité. `lib/keywords.ts` partage entre atelier, éditeur et scan les listes et variantes étroites, sans cache des textes personnels.

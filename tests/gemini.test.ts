@@ -88,7 +88,10 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     globalThis.fetch = stub(() => success({ score: 75, pointsForts: ['Texte lisible'], problemes: [], motsClesManquants: ['Python'], recommandations: [] }));
     const scan = await POST(request('scan'));
     assert.equal(scan.status, 200);
-    assert.deepEqual((await scan.json()).data.motsClesManquants, []);
+    const diagnostic=(await scan.json()).data;
+    assert.deepEqual(diagnostic.motsClesManquants, []);
+    assert.equal(diagnostic.controles.length,10);
+    assert.ok(diagnostic.mesures.mots>0);
     let count = 0;
     globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: true, titres: labels }));
     const result = await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'));
