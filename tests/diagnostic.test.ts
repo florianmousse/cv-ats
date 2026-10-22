@@ -58,7 +58,7 @@ test('sparse model output still yields concrete spelling, typography and experie
  assert.ok(!result.problemes.some(p=>p.texte.includes('ne permet pas de vérifier')));
  assert.equal(result.controles?.length,10);
  assert.equal(result.controles?.find(c=>c.categorie==='chronologie')?.statut,'non_evalue');
- assert.ok(result.mesures!.mots>100);assert.equal(result.score,80); // no automatic word-count penalty
+ assert.ok(result.mesures!.mots>100);assert.equal(result.problemes.find(p=>p.categorie==='densite')?.points,0);
  assert.ok(scanSchema.safeParse(result).success);
 });
 

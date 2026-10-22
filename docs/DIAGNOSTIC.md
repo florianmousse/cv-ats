@@ -1,4 +1,4 @@
-# Diagnostic éditorial et comparaison à l’offre — 1.6
+# Diagnostic éditorial et comparaison à l’offre — 1.7
 
 ## Ce qui change
 
@@ -13,7 +13,7 @@ L’avertissement sur l’absence d’analyse visuelle reste dans l’introducti
 
 Ces règles locales ne constituent pas un correcteur orthographique complet. Le repérage des phrases utilise des rubriques et débuts de missions français et peut manquer des formulations. Les retours à la ligne sont rapprochés lorsque possible, sans déduire la mise en page originale.
 
-Les seuils de 300 mots pour examiner un texte court, 6 mots pour une phrase courte et 38 mots pour une phrase longue sont des repères éditoriaux transparents. Ils ne sont pas des standards ATS et n’entraînent aucune déduction automatique de score. Une phrase brève peut être pertinente ; un résultat qualitatif peut suffire, sans mesure chiffrée inventée. Le score conserve ses cinq critères historiques.
+Les seuils de 300 mots pour examiner un texte court, 6 mots pour une phrase courte et 38 mots pour une phrase longue sont des repères éditoriaux transparents. Ils ne sont pas des standards ATS et n’entraînent aucune déduction automatique de score. Une phrase brève peut être pertinente ; un résultat qualitatif peut suffire, sans mesure chiffrée inventée. Le nouveau score applique le barème explicite ci-dessous ; les anciens résultats restent affichables.
 
 ## Termes et exigences
 
@@ -34,3 +34,39 @@ Les durées ne sont jamais déduites d’une simple liste de compétences. Les c
 Le scan garde **un appel Gemini**. La consigne et la réponse peuvent utiliser davantage de tokens ; les contrôles locaux n’utilisent aucune API. Le suivi et les quotas existants s’appliquent sans changement. Aucune migration supplémentaire après 003.
 
 Les tests utilisent un cas synthétique anonymisé : aucun nom, adresse, téléphone ou employeur réel de l’exemple utilisateur n’est ajouté aux fixtures. Les données de l’aperçu visuel sont fictives, sans appel Gemini réel. Les règles, le traitement de réponses IA simulées et l’interface sont vérifiés localement ; l’exhaustivité et la qualité d’une réponse Gemini réelle ne sont pas garanties par ces tests.
+
+## Contrôles mécaniques et données du fichier
+
+Nos 14 contrôles sont : texte extrait, pages, e-mail, téléphone, expériences/projets, formation, compétences, ordre des expériences, cohérence des périodes, lettres espacées, caractères de remplacement, longueur des phrases, lignes répétées et description des projets. Ce n’est pas une reproduction des 14 contrôles propriétaires de Ready4Jobs : leur liste et leur barème détaillés ne sont pas publics dans la page de méthode consultée.
+
+Les règles ont trois états : vérification effectuée, à examiner et non vérifiable ici. Un résultat positif ne couvre que la règle décrite, pas toute la rubrique. Les dates sont volontairement limitées aux périodes numériques année–année ; les autres formats, les durées par technologie et les chevauchements demandent une relecture. Les noms de rubriques reconnaissent un petit ensemble français/anglais. Le téléphone est facultatif, et les projets peuvent remplacer les expériences pour un profil débutant.
+
+L’import PDF compte réellement les pages et les caractères hors espaces par page. Une page sans texte peut être volontairement vide ou contenir des images : on ne prétend pas diagnostiquer un scan. Un PDF entièrement sans texte extractible est refusé avec une explication et la possibilité de coller le texte ; il n’y a pas d’OCR. L’import DOCX atteste l’extraction de texte mais pas le nombre de pages. Colonnes, tableaux, images et ordre de lecture visuel ne sont pas vérifiés.
+
+Ces mesures sont attestées côté serveur par HMAC, liées au compte et à l’empreinte du texte, avec une expiration d’une heure. Le secret de service existant signe une donnée avec un préfixe propre à cet usage ; il n’est jamais transmis. Le justificatif ne contient pas le CV et n’est ni enregistré ni envoyé à Gemini. Modifier le CV ou charger une sauvegarde efface l’attestation ; une preuve absente, périmée, altérée ou liée à un autre texte redevient « inconnu ». Aucun fichier n’est conservé par ce traitement.
+
+## Barème interne cvats-2
+
+Le serveur part de 20 points par dimension : structure/lisibilité, impact/preuves, lisibilité technique du texte, clarté/concision, complétude utile. La somme vaut le score final sur 100. Les retraits sont attribués après fusion et déduplication, plafonnés à 20 par dimension ; la somme des retraits affichés vaut exactement 100 moins le score. Le score n’est jamais envoyé provisoirement à l’interface.
+
+| Constat retenu | Retrait |
+| --- | --- |
+| E-mail non repéré | 4 points de complétude |
+| Période année–année inversée | 3 points de structure |
+| Caractère de remplacement non reconnu | 3 points de lisibilité technique |
+| Coquille du lexique local | 2 points de clarté |
+| Lettres espacées dans le titre | 2 points de lisibilité technique |
+| Autre constat IA étayé | 3 / 2 / 1 selon priorité élevée / moyenne / faible |
+| Volume, pages, longueur seule, rubriques non reconnues, projets peu décrits, casse des outils, ordre des dates, téléphone absent, adéquation à l’offre | Conseils locaux sans retrait automatique |
+
+La catégorie détermine la dimension ; les champs de coût éventuellement renvoyés par l’IA sont ignorés. Volume et adéquation ne retirent aucun point, même signalés par le modèle. Aucun chiffre de réalisation n’est obligatoire. Ce barème est un choix éditorial interne, non une formule validée par un ATS commercial. Il diffère du barème 1.6 : les notes ne sont donc pas directement comparables.
+
+Les problèmes IA sans citation présente dans le CV, sans catégorie, sans correction substantielle ou avec une limite visuelle comme seul constat sont écartés. Quelques formulations génériques explicites sont également filtrées ; cette validation textuelle ne prouve pas à elle seule la qualité sémantique de toute correction. Les doublons de même catégorie portant sur un extrait identique ou inclus sont fusionnés de façon conservatrice, en privilégiant les règles locales. Les conseils de la feuille de route proviennent des problèmes retenus. Une information absente peut être signalée sans citation par les règles locales.
+
+Si un axe de relecture attendu reste absent, non évalué, à vérifier ou sans constat suffisamment étayé, le score est marqué « Estimation partielle ». Les propriétés inconnues du fichier ne sont jamais pénalisées ni validées implicitement. Un score élevé signifie peu de défauts retenus, pas une preuve d’exhaustivité ou une probabilité d’embauche. Les règles locales sont reproductibles ; la relecture IA peut varier d’une analyse à l’autre.
+
+## Références et limites
+
+La séparation mécanique/qualitative et les cinq dimensions s’inspirent de la [méthode Ready4Jobs](https://www.ready4jobs.ai/fr/methode). [Greenhouse documente](https://support.greenhouse.io/hc/en-us/articles/200989175-Unsuccessful-resume-parse) les difficultés d’extraction liées aux images, colonnes, tableaux, zones de texte et lettres espacées. Une extraction partielle ou échouée ne signifie pas un rejet automatique de la candidature. Aucune compatibilité certifiée avec Taleo, Workday, SuccessFactors, Talentsoft ou d’autres produits n’est revendiquée par notre application.
+
+Tests supplémentaires : 14 contrôles reproductibles, dates ambiguës/inversées, PDF réel avec page graphique sans texte, PDF sans texte refusé, DOCX sans pagination supposée, attestation altérée/expirée/autre compte/autre texte, citations invalides, déduplication, caps et cohérence du score, absence de pénalité de longueur ou d’adéquation. Aucun appel Gemini réel pour ces vérifications.

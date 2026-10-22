@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import {categorySchema,checkSchema,requirementSchema} from './diagnostic-schema';
+import {categorySchema,checkSchema,requirementSchema,dimensionSchema,mechanicalCheckSchema,scoreDetailsSchema} from './diagnostic-schema';
 const text = z.string().max(12000);
 export const cvSchema = z.object({
   nom: text, titre: text,
@@ -10,7 +10,7 @@ export const cvSchema = z.object({
   formation:z.array(z.object({intitule:text, etablissement:text, dates:text}).strict()).max(30)
 }).strict();
 const criterion=z.number().int().min(0).max(20);
-export const scanSchema=z.object({score:z.number().int().min(0).max(100),criteres:z.object({identite:criterion,sections:criterion,structure:criterion,precision:criterion,pertinence:criterion}).strict().optional(),pointsForts:z.array(text).max(30),problemes:z.array(z.object({severite:z.enum(['élevée','moyenne','faible']),texte:text,extrait:text.optional(),correction:text.optional(),categorie:categorySchema.optional(),origine:z.enum(['local','ia']).optional()}).strict()).max(60),motsClesManquants:z.array(text).max(100),recommandations:z.array(text).max(30),controles:z.array(checkSchema).max(10).optional(),exigences:z.array(requirementSchema).max(100).optional(),mesures:z.object({mots:z.number().int().nonnegative(),phrasesExperience:z.number().int().nonnegative(),phrasesCourtes:z.number().int().nonnegative(),phrasesLongues:z.number().int().nonnegative()}).strict().optional()}).strict();
+export const scanSchema=z.object({score:z.number().int().min(0).max(100),criteres:z.object({identite:criterion,sections:criterion,structure:criterion,precision:criterion,pertinence:criterion}).strict().optional(),pointsForts:z.array(text).max(30),problemes:z.array(z.object({severite:z.enum(['élevée','moyenne','faible']),texte:text,extrait:text.optional(),correction:text.optional(),categorie:categorySchema.optional(),origine:z.enum(['local','ia']).optional(),ruleId:z.string().max(60).optional(),dimension:dimensionSchema.optional(),points:z.number().int().min(0).max(20).optional()}).strict()).max(60),motsClesManquants:z.array(text).max(100),recommandations:z.array(text).max(30),controles:z.array(checkSchema).max(10).optional(),exigences:z.array(requirementSchema).max(100).optional(),mecanique:z.array(mechanicalCheckSchema).length(14).optional(),evaluation:scoreDetailsSchema.optional(),mesures:z.object({mots:z.number().int().nonnegative(),phrasesExperience:z.number().int().nonnegative(),phrasesCourtes:z.number().int().nonnegative(),phrasesLongues:z.number().int().nonnegative()}).strict().optional()}).strict();
 export type CV=z.infer<typeof cvSchema>;
 export type Scan=z.infer<typeof scanSchema>;
 /** Only quote text that is actually in the supplied CV; never invent evidence. */

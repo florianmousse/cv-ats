@@ -1,31 +1,15 @@
+import {countWords,experiencePhrases} from './text-metrics';
+export {countWords,experiencePhrases} from './text-metrics';
 import {groundScan,type Scan} from './cv';
 import {diagnosticCategories,type DiagnosticCategory,type Requirement} from './diagnostic-schema';
 import {canonicalKeyword,extractJobKeywords,hasKeyword,normalizeKeyword,uniqueKeywords} from './keywords';
+import {mechanicalChecks} from './mechanical-checks';
+import {scoreIssues} from './diagnostic-score';
+import type {DocumentFacts} from './document-facts';
 
 type Issue=Scan['problemes'][number];
 const normalized=(value:string)=>value.replace(/\s+/g,' ').trim();
 const quoted=(source:string,excerpt:string)=>Boolean(excerpt.trim())&&normalized(source).includes(normalized(excerpt));
-export function countWords(source:string){return (source.match(/[\p{L}\p{N}]+(?:[’'./+#-][\p{L}\p{N}]+)*/gu)??[]).length;}
-
-/** Conservative segmentation of experience text, joining extraction-induced line wraps. */
-export function experiencePhrases(source:string){
- const lines=source.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
- const start=lines.findIndex(line=>/^(?:expériences?|experiences?)(?:\s+professionnelles?)?\s*:?$/i.test(line));
- if(start<0)return [];
- const end=lines.findIndex((line,i)=>i>start&&/^(?:formations?|compétences|competences|langues|qualités|qualites|projets personnels|centres d.intérêts?)\s*:?$/i.test(line));
- const section=lines.slice(start+1,end<0?undefined:end);
- const begins=/^(?:[-•–]\s*)?(?:conception|développement|developpement|corrections?|mise à jour|contacts?|compréhension|programmation|gestion|participation|réalisation|maintenance|intégration|analyse|rédaction|création|concevoir|développer|corriger|maintenir|intégrer|analyser|rédiger|créer|piloter|accompagner|assurer|gérer|automatiser|tester|optimiser|coordonner|mettre|réaliser)\b/i;
- const phrases:string[]=[];
- let current='';
- const flush=()=>{if(current)phrases.push(current);current='';};
- for(const line of section){
-  if(begins.test(line)){flush();current=line;}
-  else if(current&&!/^\p{Lu}[\p{Lu}\s’'—-]+$/u.test(line)&&!/(?:\b(?:19|20)\d{2}\b|\|)/.test(line)){current+='\n'+line;}
-  else flush();
- }
- flush();return phrases;
-}
-
 export function localDiagnostics(source:string){
  const issues:Issue[]=[];
  const add=(categorie:DiagnosticCategory,texte:string,extrait:string,correction:string,severite:Issue['severite']='moyenne')=>issues.push({categorie,texte,extrait,correction,severite,origine:'local'});
@@ -74,13 +58,16 @@ export function localRequirements(source:string,job:string):Requirement[]{
 }
 
 /** Combine grounded model findings with reproducible text checks, without another AI call. */
-export function enrichScan(raw:Scan,source:string,job:string):Scan{
- const scan=groundScan(raw,source),local=localDiagnostics(source);
+export function enrichScan(raw:Scan,source:string,job:string,facts?:DocumentFacts):Scan{
+ const scan=groundScan(raw,source),local=localDiagnostics(source),mechanical=mechanicalChecks(source,facts);
  // The visual-analysis limitation belongs in the report introduction, not the correction list.
  const limitation=(value:string)=>/ne permet pas|impossible|ne peux pas|ne peut pas|pas possible|non évalu|non vérifi/i.test(value)&&/mise en page|couleurs|polices|colonnes|visuel/i.test(value);
- const modelIssues=scan.problemes.filter(p=>!limitation(p.texte)).map(p=>({...p,origine:'ia' as const}));
- const issues=[...local.issues];
- for(const issue of modelIssues){if(!issues.some(p=>(p.categorie===issue.categorie&&p.extrait&&issue.extrait&&normalized(p.extrait)===normalized(issue.extrait))||normalized(p.texte)===normalized(issue.texte)))issues.push(issue);}
+ const modelIssues=scan.problemes.filter(p=>!limitation(p.texte)&&p.extrait&&p.categorie&&p.correction&&p.correction.trim().length>=20&&!/^(?:améliore[rz]? (?:le|votre|ton) cv|soyez plus précis|être plus précis|ajoute[rz]? des détails|corrige[rz]? les fautes)[.!\s]*$/i.test(p.correction.trim())).map(p=>({categorie:p.categorie,severite:p.severite,texte:p.texte,extrait:p.extrait,correction:p.correction,origine:'ia' as const}));
+ const issues:Issue[]=[];
+ for(const issue of [...local.issues,...mechanical.issues,...modelIssues]){
+  const duplicate=issues.findIndex(p=>(p.categorie===issue.categorie&&p.extrait&&issue.extrait&&(normalized(p.extrait).includes(normalized(issue.extrait))||normalized(issue.extrait).includes(normalized(p.extrait))))||normalized(p.texte)===normalized(issue.texte));
+  if(duplicate<0)issues.push(issue);
+ }
  const requirements=localRequirements(source,job);
  for(const item of scan.exigences??[]){
   if(!quoted(job,item.extraitAnnonce)||!hasKeyword(item.extraitAnnonce,item.terme))continue;
@@ -102,7 +89,10 @@ export function enrichScan(raw:Scan,source:string,job:string):Scan{
   const model=scan.controles?.find(c=>c.categorie===categorie);
   const hits=issues.filter(p=>p.categorie===categorie);
   if(hits.length)return {categorie,statut:'a_corriger' as const,constat:`${hits.length} point${hits.length>1?'s':''} à examiner dans les corrections ci-dessous.`};
+  if(model?.statut==='a_corriger')return {categorie,statut:'non_evalue' as const,constat:'Le modèle a signalé un problème sans fournir de correction suffisamment étayée. Aucune pénalité retenue pour ce constat.'};
   return model??{categorie,statut:'non_evalue' as const,constat:'Le modèle n’a pas fourni de conclusion pour ce contrôle. Cela ne signifie pas qu’aucun problème n’existe.'};
  });
- return {...scan,problemes:issues.slice(0,60),controles,exigences:requirements.slice(0,100),mesures:local.mesures,motsClesManquants:missing.slice(0,100),recommandations:scan.recommandations.filter(r=>!limitation(r))};
+ const scored=scoreIssues(issues);
+ const qualitativeComplete=Object.keys(diagnosticCategories).filter(c=>job||c!=='adequation').every(c=>scan.controles?.some(check=>check.categorie===c&&check.statut!=='non_evalue'&&check.statut!=='a_verifier'&&(check.statut!=='a_corriger'||modelIssues.some(p=>p.categorie===c))));
+ return {...scan,score:scored.score,criteres:undefined,problemes:scored.problemes,controles,mecanique:mechanical.checks,evaluation:{method:'cvats-2',dimensions:scored.dimensions,qualitativeComplete,rejectedSuggestions:scan.problemes.length-modelIssues.length},exigences:requirements.slice(0,100),mesures:local.mesures,motsClesManquants:missing.slice(0,100),recommandations:scored.problemes.filter(p=>p.correction).slice(0,3).map(p=>p.correction!)};
 }
