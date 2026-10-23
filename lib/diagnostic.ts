@@ -6,12 +6,13 @@ import {canonicalKeyword,extractJobKeywords,hasKeyword,normalizeKeyword,uniqueKe
 import {mechanicalChecks} from './mechanical-checks';
 import {scoreIssues} from './diagnostic-score';
 import type {DocumentFacts} from './document-facts';
+import {anglicisms} from './anglicisms';
 
 type Issue=Scan['problemes'][number];
 const normalized=(value:string)=>value.replace(/\s+/g,' ').trim();
 const quoted=(source:string,excerpt:string)=>Boolean(excerpt.trim())&&normalized(source).includes(normalized(excerpt));
 export function localDiagnostics(source:string){
- const issues:Issue[]=[];
+ const issues:Issue[]=[...anglicisms(source)];
  const add=(categorie:DiagnosticCategory,texte:string,extrait:string,correction:string,severite:Issue['severite']='moyenne')=>issues.push({categorie,texte,extrait,correction,severite,origine:'local'});
  // A small, explicit typo list supplements the model; it is not a general spellchecker.
  const typos:Record<string,string>={techonologies:'technologies',technolgies:'technologies',dévelopement:'développement',développeurss:'développeurs',expériance:'expérience',experiance:'expérience',responsablité:'responsabilité',fonctionnalitées:'fonctionnalités',autononome:'autonome'};
@@ -21,11 +22,12 @@ export function localDiagnostics(source:string){
  for(const [pattern,replacement] of [[/\bJavascript\b/g,'JavaScript'],[/\bGitlab\b/g,'GitLab'],[/\bGithub\b/g,'GitHub']] as const){const match=source.match(pattern);if(match)add('typographie',`Harmoniser l’écriture de ${replacement}`,match[0],`Utiliser la graphie « ${replacement} » de manière cohérente.`, 'faible');}
  const words=countWords(source),phrases=experiencePhrases(source);
  if(words<300)add('densite',`Volume de texte à examiner : ${words} mots`,'','Ce volume court est un repère éditorial, pas une norme ATS ni une pénalité automatique. Si des informations utiles manquent, précise les missions, outils réellement utilisés et livrables. Ne rallonge pas le CV pour atteindre un quota de mots.','faible');
+ const encodeVague=(phrase:string)=>'Réalisation à préciser : « '+normalized(phrase).slice(0,90)+' »';
+ const vague=/^(?:conception et développement(?: front et back)? de nouvelles fonctionnalités|développement et optimisation de modules|contacts? avec (?:le|les) clients?|compréhension du besoin utilisateur|mise à jour des spécifications(?: techniques et fonctionnelles)?)[.!]?$/i;
  const short=phrases.filter(p=>countWords(p)<6),long=phrases.filter(p=>countWords(p)>38);
- for(const phrase of short.slice(0,3))add('formulations',`Mission à préciser : « ${normalized(phrase).slice(0,80)} »`,phrase,'Précise l’action, son objet et ta contribution. Par exemple : « Échanger avec [interlocuteurs réels] pour [objectif réel] ». Remplace les crochets uniquement par des faits vérifiables.');
+ for(const phrase of short.filter(p=>!vague.test(normalized(p).replace(/^[•*–—-]\s*/,''))).slice(0,3))add('formulations',`Mission à préciser : « ${normalized(phrase).slice(0,80)} »`,phrase,'Précise l’action, son objet et ta contribution. Par exemple : « Échanger avec [interlocuteurs réels] pour [objectif réel] ». Remplace les crochets uniquement par des faits vérifiables.');
  for(const phrase of long.slice(0,2))add('formulations','Une phrase d’expérience est longue à parcourir',phrase,'Sépare les actions distinctes en deux puces. Repère indicatif : plus de 38 mots dans cette phrase reconstituée ; adapte la longueur à son contenu.','faible');
- const generic=phrases.find(p=>/\b(?:développement et optimisation de modules|conception et développement|participation au|mise à jour des spécifications)\b/i.test(normalized(p)));
- if(generic)add('realisations','Une réalisation peut être rendue plus concrète',generic,'Indique quel module ou livrable, pour quel besoin et avec quels outils réellement utilisés dans cette mission. Si tu connais un résultat vérifiable, précise-le ; un livrable ou un résultat qualitatif suffit, aucun chiffre n’est obligatoire.');
+ for(const generic of phrases.filter(p=>vague.test(normalized(p).replace(/^[•*–—-]\s*/,''))).slice(0,6))issues.push({categorie:'realisations',ruleId:'vague_experience',severite:'moyenne',origine:'local',texte:encodeVague(generic),extrait:generic,correction:'Précise le module ou livrable, le besoin traité et ta contribution réelle. La formulation actuelle nomme une activité sans l’illustrer. Un résultat qualitatif ou un livrable vérifiable suffit ; aucun chiffre n’est obligatoire.'});
  return {issues,mesures:{mots:words,phrasesExperience:phrases.length,phrasesCourtes:short.length,phrasesLongues:long.length}};
 }
 
@@ -94,5 +96,5 @@ export function enrichScan(raw:Scan,source:string,job:string,facts?:DocumentFact
  });
  const scored=scoreIssues(issues);
  const qualitativeComplete=Object.keys(diagnosticCategories).filter(c=>job||c!=='adequation').every(c=>scan.controles?.some(check=>check.categorie===c&&check.statut!=='non_evalue'&&check.statut!=='a_verifier'&&(check.statut!=='a_corriger'||modelIssues.some(p=>p.categorie===c))));
- return {...scan,score:scored.score,criteres:undefined,problemes:scored.problemes,controles,mecanique:mechanical.checks,evaluation:{method:'cvats-2',dimensions:scored.dimensions,qualitativeComplete,rejectedSuggestions:scan.problemes.length-modelIssues.length},exigences:requirements.slice(0,100),mesures:local.mesures,motsClesManquants:missing.slice(0,100),recommandations:scored.problemes.filter(p=>p.correction).slice(0,3).map(p=>p.correction!)};
+ return {...scan,score:scored.score,criteres:undefined,problemes:scored.problemes,controles,mecanique:mechanical.checks,evaluation:{method:'cvats-3',dimensions:scored.dimensions,qualitativeComplete,rejectedSuggestions:scan.problemes.length-modelIssues.length},exigences:requirements.slice(0,100),mesures:local.mesures,motsClesManquants:missing.slice(0,100),recommandations:scored.problemes.filter(p=>p.correction).slice(0,3).map(p=>p.correction!)};
 }

@@ -13,7 +13,8 @@ export function dataError(error: { message?: string; code?: string } | null) {
   if (message.includes('CVATS_FORBIDDEN')) throw new PublicError('Ce compte n’est pas autorisé à effectuer cette action.', 403);
   if (message.includes('CVATS_SAVE_LIMIT')) throw new PublicError('Tu as atteint les 20 sauvegardes. Supprime une ancienne version pour en ajouter une.', 409);
   if (message.includes('CVATS_NOT_FOUND')) throw new PublicError('Compte introuvable.', 404);
-  throw new PublicError('Le service de sauvegardes et de suivi est indisponible. Vérifie notamment que les migrations SQL 001 à 003 ont été exécutées dans Supabase.', 503);
+  if(message.includes('CVATS_INVALID'))throw new PublicError('Cette opération n’est pas disponible. Vérifie que la migration SQL 004 a été appliquée pour les lettres et la structuration du CV.',503);
+  throw new PublicError('Le service de sauvegardes et de suivi est indisponible. Vérifie notamment que les migrations SQL 001 à 004 ont été exécutées dans Supabase.', 503);
 }
 export async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await adminClient().rpc(name, args);
@@ -30,7 +31,7 @@ export async function userUsage(ids: string[]) {
 export async function adminUsage() {
   const usage=await rpc<AdminUsage>('cvats_admin_usage');requireQuota(usage);return usage;
 }
-export function beginRun(user: string, mode: 'scan' | 'optimize', model: string, source:'personal'|'shared') {
+export function beginRun(user: string, mode: 'scan' | 'optimize' | 'structure' | 'letter', model: string, source:'personal'|'shared') {
   return rpc<string>('cvats_admit_run', { p_user: user, p_mode: mode, p_model: model, p_source:source });
 }
 export function finish(run: string, success: boolean) { return rpc('cvats_finish', { p_run: run, p_success: success }); }

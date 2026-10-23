@@ -49,8 +49,8 @@ test('unquoted, vague and duplicate IA findings do not create duplicate charges'
  const result=enrichScan({...raw,problemes:[issue,{...issue,texte:'Même observation',points:20,dimension:'ats',ruleId:'email'},{...issue,extrait:'Citation inventée'}, {...issue,extrait:undefined},{...issue,correction:'Soyez plus précis.'}]},source,'');
  assert.equal(result.problemes.filter(p=>p.origine==='ia').length,1);
  assert.equal(result.evaluation?.rejectedSuggestions,3);
- assert.equal(result.problemes.find(p=>p.origine==='ia')?.points,2);
- assert.equal(result.score,98);
+ assert.equal(result.problemes.find(p=>p.origine==='ia')?.points,5);
+ assert.equal(result.score,95);
  assert.ok(scanSchema.safeParse(result).success);
 });
 test('dimension caps, visible penalties and total score agree',()=>{

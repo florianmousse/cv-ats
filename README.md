@@ -2,6 +2,12 @@
 
 Application web en français pour adapter honnêtement un CV à une annonce d’emploi et analyser sa lisibilité ATS. Projet **Next.js standard** pour Vercel, avec **Supabase Auth** pour une connexion privée et un espace administrateur. Aucun compte ChatGPT ni plugin requis. Sauvegardes privées de CV sur demande, suivi de consommation Gemini et clés Gemini personnelles chiffrées dans Supabase. Quotas configurables pour la clé partagée uniquement.
 
+## Version 1.8 : dossier de candidature persistant
+
+Le CV éditable, le diagnostic et la lettre sont indépendants. Le scan utilise la version actuelle de l’éditeur et conserve les documents existants, y compris en cas d’échec. Quatre espaces regroupent le travail : Mon CV, Diagnostic, Lettre de motivation, Outils et IA. Un brouillon local par compte permet de reprendre pendant sept jours ; il est désactivable et effacé à la déconnexion explicite. Les prompts exportables restent disponibles sans quota. La version apparaît dans le menu d’administration.
+
+**À déployer avec [la migration 004](supabase/migrations/004_candidature_workflows.sql), après 003.** Les lettres et la structuration consomment au maximum deux appels, vérification comprise. Voir [le guide de candidature](docs/CANDIDATURE.md). Le diagnostic repère les anglicismes contextuels, applique un barème plus exigeant et masque la note globale si la relecture est incomplète.
+
 ## Version 1.7 : contrôles vérifiables et score explicable
 
 Le rapport ajoute 14 contrôles mécaniques avec trois états (vérifié, à examiner, inconnu). Les pages PDF et leur présence de texte sont mesurées à l’import ; le texte collé ne reçoit aucune validation de fichier. Les corrections IA doivent citer le CV et fournir une proposition exploitable. Le score est recalculé après déduplication sur cinq dimensions de 20 points, avec le coût visible de chaque correction et un avertissement si la relecture est incomplète. Le nombre de mots, de pages ou l’écart avec l’annonce n’entraîne pas de pénalité automatique. Voir [la méthode et ses limites](docs/DIAGNOSTIC.md). Toujours un appel Gemini et aucune nouvelle migration.
@@ -39,7 +45,7 @@ GEMINI_API_KEY=ta_cle_personnelle
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
-Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification. Sur une installation neuve, exécuter les migrations SQL 001, 002 puis 003 dans le SQL Editor Supabase avant la première analyse. Configurer `API_KEY_ENCRYPTION_SECRET` pour les clés personnelles ; voir le guide dédié.
+Ajouter aussi `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY`, puis créer l’administrateur avec `npm run admin:create` comme indiqué dans le guide d’authentification. Sur une installation neuve, exécuter les migrations SQL 001, 002, 003 puis 004 dans le SQL Editor Supabase avant la première analyse. Configurer `API_KEY_ENCRYPTION_SECRET` pour les clés personnelles ; voir le guide dédié.
 
 Ne jamais mettre de clé dans GitHub. `.env.local` est ignoré par Git. Ne pas préfixer la variable par `NEXT_PUBLIC_`.
 

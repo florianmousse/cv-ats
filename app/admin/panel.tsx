@@ -64,7 +64,7 @@ export default function AdminPanel() {
     </section>
     {deletion && <DeleteDialog user={deletion} busy={busy} cancel={() => setDeletion(null)} confirm={() => update(deletion, 'delete')}/>}
 
-    <p className="auth-footnote">Les comptes autorisés utilisent leur clé personnelle lorsqu’elle est enregistrée, sinon celle du site. Les quotas internes limitent uniquement les appels avec la clé du site. Un scan utilise 1 appel ; une optimisation jusqu’à 2, vérification comprise. Le suivi distingue les deux sources sans afficher de clé. Une requête déjà en cours peut se terminer après une désactivation.</p>
+    <p className="auth-footnote">Les comptes autorisés utilisent leur clé personnelle lorsqu’elle est enregistrée, sinon celle du site. Les quotas internes limitent uniquement les appels avec la clé du site. Un scan utilise 1 appel ; une optimisation, une structuration ou une lettre jusqu’à 2, vérification comprise. Le suivi distingue les deux sources sans afficher de clé. Une requête déjà en cours peut se terminer après une désactivation.</p>
   </>;
 }
 

@@ -53,7 +53,7 @@ test('sparse model output still yields concrete spelling, typography and experie
  const result=enrichScan(sparse,sampleCV,sampleJob);
  assert.ok(result.problemes.some(p=>p.categorie==='orthographe'&&p.extrait==='techonologies'&&p.correction?.includes('technologies')));
  assert.ok(result.problemes.some(p=>p.categorie==='typographie'&&p.extrait==='I N G É N I E U R'));
- assert.ok(result.problemes.some(p=>p.categorie==='formulations'&&p.extrait==='Contacts avec le client'));
+ assert.ok(result.problemes.some(p=>p.ruleId==='vague_experience'&&p.extrait==='Contacts avec le client'));
  assert.ok(result.problemes.some(p=>p.categorie==='realisations'));
  assert.ok(!result.problemes.some(p=>p.texte.includes('ne permet pas de vérifier')));
  assert.equal(result.controles?.length,10);

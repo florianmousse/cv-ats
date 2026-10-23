@@ -23,4 +23,4 @@ export const mechanicalIds=['text_layer','page_count','email','phone','experienc
 export const mechanicalCheckSchema=z.object({id:z.enum(mechanicalIds),label:z.string(),status:z.enum(['ok','attention','inconnu']),detail:z.string(),extrait:z.string().optional()}).strict();
 export type MechanicalCheck=z.infer<typeof mechanicalCheckSchema>;
 const points=z.number().int().min(0).max(20);
-export const scoreDetailsSchema=z.object({method:z.literal('cvats-2'),dimensions:z.object({structure:points,impact:points,ats:points,clarte:points,completude:points}).strict(),qualitativeComplete:z.boolean(),rejectedSuggestions:z.number().int().nonnegative()}).strict();
+export const scoreDetailsSchema=z.object({method:z.enum(['cvats-2','cvats-3']),dimensions:z.object({structure:points,impact:points,ats:points,clarte:points,completude:points}).strict(),qualitativeComplete:z.boolean(),rejectedSuggestions:z.number().int().nonnegative()}).strict();

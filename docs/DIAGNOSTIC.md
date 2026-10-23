@@ -1,4 +1,4 @@
-# Diagnostic éditorial et comparaison à l’offre — 1.7
+# Diagnostic éditorial et comparaison à l’offre — 1.8
 
 ## Ce qui change
 
@@ -45,25 +45,29 @@ L’import PDF compte réellement les pages et les caractères hors espaces par 
 
 Ces mesures sont attestées côté serveur par HMAC, liées au compte et à l’empreinte du texte, avec une expiration d’une heure. Le secret de service existant signe une donnée avec un préfixe propre à cet usage ; il n’est jamais transmis. Le justificatif ne contient pas le CV et n’est ni enregistré ni envoyé à Gemini. Modifier le CV ou charger une sauvegarde efface l’attestation ; une preuve absente, périmée, altérée ou liée à un autre texte redevient « inconnu ». Aucun fichier n’est conservé par ce traitement.
 
-## Barème interne cvats-2
+## Barème interne cvats-3 (version 1.8)
 
-Le serveur part de 20 points par dimension : structure/lisibilité, impact/preuves, lisibilité technique du texte, clarté/concision, complétude utile. La somme vaut le score final sur 100. Les retraits sont attribués après fusion et déduplication, plafonnés à 20 par dimension ; la somme des retraits affichés vaut exactement 100 moins le score. Le score n’est jamais envoyé provisoirement à l’interface.
+Le serveur part de 20 points par dimension : structure/lisibilité, impact/preuves, lisibilité technique du texte, clarté/concision, complétude utile. Les constats sont fusionnés et dédupliqués avant calcul ; les retraits sont plafonnés à 20 par dimension. La somme des retraits effectifs vaut 100 moins le score calculé. Une phrase locale identifiée comme vague ne disparaît plus simplement parce qu’une autre mission a le même titre de conseil.
 
 | Constat retenu | Retrait |
 | --- | --- |
-| E-mail non repéré | 4 points de complétude |
-| Période année–année inversée | 3 points de structure |
-| Caractère de remplacement non reconnu | 3 points de lisibilité technique |
-| Coquille du lexique local | 2 points de clarté |
-| Lettres espacées dans le titre | 2 points de lisibilité technique |
-| Autre constat IA étayé | 3 / 2 / 1 selon priorité élevée / moyenne / faible |
-| Volume, pages, longueur seule, rubriques non reconnues, projets peu décrits, casse des outils, ordre des dates, téléphone absent, adéquation à l’offre | Conseils locaux sans retrait automatique |
+| E-mail non repéré | 6 points de complétude |
+| Période numérique inversée | 5 points de structure |
+| Caractère de remplacement non reconnu | 5 points de lisibilité technique |
+| Coquille du lexique local | 4 points de clarté |
+| Lettres espacées dans le titre | 4 points de lisibilité technique |
+| Mission correspondant à une formulation explicitement vague du lexique | 6 points d’impact par formulation distincte |
+| Autre constat IA étayé | 8 / 5 / 2 selon priorité élevée / moyenne / faible |
+| Nombre de mots/pages seul, longueur seule, titre de rubrique non reconnu, téléphone absent, anglicisme contextuel | Conseil local sans retrait automatique |
+| Adéquation à l’offre | Relevé séparé, sans retrait sur la qualité rédactionnelle |
 
-La catégorie détermine la dimension ; les champs de coût éventuellement renvoyés par l’IA sont ignorés. Volume et adéquation ne retirent aucun point, même signalés par le modèle. Aucun chiffre de réalisation n’est obligatoire. Ce barème est un choix éditorial interne, non une formule validée par un ATS commercial. Il diffère du barème 1.6 : les notes ne sont donc pas directement comparables.
+Les défauts qualitatifs de densité peuvent désormais retirer des points lorsqu’ils sont étayés par une citation et une correction ; un simple seuil de longueur ne suffit pas. Les missions vagues sont reconnues par des formulations explicites complètes, avec ou sans puces, jamais par la seule présence de « développement ». Les anglicismes (management, feedback, reporting, deadline, challenge, skills) sont proposés comme choix contextuels en français. Noms de technologies, produits, diplômes et intitulés contractuels ne sont pas remplacés automatiquement.
 
-Les problèmes IA sans citation présente dans le CV, sans catégorie, sans correction substantielle ou avec une limite visuelle comme seul constat sont écartés. Quelques formulations génériques explicites sont également filtrées ; cette validation textuelle ne prouve pas à elle seule la qualité sémantique de toute correction. Les doublons de même catégorie portant sur un extrait identique ou inclus sont fusionnés de façon conservatrice, en privilégiant les règles locales. Les conseils de la feuille de route proviennent des problèmes retenus. Une information absente peut être signalée sans citation par les règles locales.
+La catégorie détermine la dimension ; les coûts renvoyés par l’IA sont ignorés. Aucun chiffre de réalisation n’est obligatoire. Ce barème est un choix éditorial interne, non une formule validée par un ATS commercial. Les notes 1.7 (cvats-2) et 1.8 (cvats-3) ne sont donc pas directement comparables ; les anciens résultats restent lisibles.
 
-Si un axe de relecture attendu reste absent, non évalué, à vérifier ou sans constat suffisamment étayé, le score est marqué « Estimation partielle ». Les propriétés inconnues du fichier ne sont jamais pénalisées ni validées implicitement. Un score élevé signifie peu de défauts retenus, pas une preuve d’exhaustivité ou une probabilité d’embauche. Les règles locales sont reproductibles ; la relecture IA peut varier d’une analyse à l’autre.
+Les problèmes IA sans citation présente dans le CV, sans catégorie, sans correction substantielle ou avec une limite visuelle comme seul constat sont écartés. Quelques formulations génériques sont filtrées ; cela ne prouve pas à soi seul la qualité sémantique de toutes les corrections. Les doublons de même catégorie portant sur un extrait identique ou inclus sont fusionnés de façon conservatrice. Une information absente peut être signalée sans citation par les règles locales.
+
+Si un axe qualitatif attendu reste absent, non évalué, à vérifier ou sans constat étayé, **la note globale et les cinq notes sont masquées** : seuls les retraits déjà documentés sont affichés. Même avec une note élevée, des défauts significatifs empêchent le badge favorable. Les propriétés inconnues du fichier ne sont ni validées ni pénalisées implicitement. Un score élevé indique peu de défauts retenus, pas une preuve d’exhaustivité ou une probabilité d’embauche. Les règles locales sont reproductibles ; l’IA peut varier entre deux analyses.
 
 ## Références et limites
 

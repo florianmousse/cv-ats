@@ -105,6 +105,16 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     count = 0;
     globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: false, titres: labels }));
     assert.equal((await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'))).status, 422);
+    count=0;
+    const letter={text:'Madame, Monsieur,\n\nMon expérience dans la maintenance d’applications React me permet de contribuer aux missions de développement présentées dans votre annonce. Je souhaite échanger avec vous sur ce poste.'};
+    globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:true}));
+    const letterResponse=await POST(request('letter','Poste de développeuse web React : maintenance des applications.'));
+    assert.equal(letterResponse.status,200);assert.equal(count,2);assert.equal((await letterResponse.json()).data.text,letter.text);
+    count=0;globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:false}));
+    assert.equal((await POST(request('letter','Poste de développeuse web React : maintenance des applications.'))).status,422);assert.equal(count,2);
+    count=0;assert.equal((await POST(request('letter'))).status,400);assert.equal(count,0);
+    globalThis.fetch=stub(()=>success(++count===1?fixture:{fidele:true,titres:labels}));
+    assert.equal((await POST(request('structure'))).status,200);assert.equal(count,2);
   } finally {
     globalThis.fetch = realFetch;
     ['SUPABASE_URL','SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'].forEach((key,i)=>{if(previousAuth[i]===undefined)delete process.env[key];else process.env[key]=previousAuth[i];});

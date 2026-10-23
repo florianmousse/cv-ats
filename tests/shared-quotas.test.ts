@@ -53,6 +53,20 @@ test('shared quotas: migration, reservations, overrides, periods, personal exemp
   await query('select cvats_set_quota($1,12)',[b]);
   await db.exec(await readFile(new URL('../supabase/migrations/003_shared_key_quotas.sql',import.meta.url),'utf8'));
   const [{v:allowance}]=await query<{v:{limit:number;dailyLimit:number;used:number}}>('select cvats_shared_allowance($1) as v',[b]);assert.equal(allowance.limit,12);assert.equal(allowance.dailyLimit,100);
+  await assert.rejects(run(b,'letter'),/CVATS_INVALID/);
+  const migration=await readFile(new URL('../supabase/migrations/004_candidature_workflows.sql',import.meta.url),'utf8');
+  await db.exec(migration);
+  const letter=await run(b,'letter'),structure=await run(b,'structure');
+  const budgets=await query<{reserved_calls:number;mode:string}>('select reserved_calls,mode from cvats_usage_runs where id=any($1)',[[letter,structure]]);
+  assert.ok(budgets.every(r=>r.reserved_calls===2));assert.deepEqual(budgets.map(r=>r.mode).sort(),['letter','structure']);
+  await query('select cvats_start_call($1)',[letter]);await query('select cvats_start_call($1)',[letter]);
+  await assert.rejects(query('select cvats_start_call($1)',[letter]));
+  await db.exec(migration); // Idempotent: does not alter quotas or pending runs.
+  assert.equal((await query<{reserved_calls:number}>('select reserved_calls from cvats_usage_runs where id=$1',[structure]))[0].reserved_calls,2);
+  await query('select cvats_set_shared_policy(0,0)');
+  await assert.rejects(run(a,'letter'),/CVATS_USER_QUOTA/);
+  await run(a,'letter','personal');await run(a,'structure','personal');
+  await query('select cvats_set_shared_policy(100,5)');
   for(const role of ['anon','authenticated']){
    await db.exec('set role '+role);
    await assert.rejects(run(),/permission denied/);
