@@ -38,12 +38,12 @@ test('anglicisms are contextual alternatives without corrupting technology or En
  assert.equal(anglicisms('Skills\nTeam management and reporting\nWork experience').length,0);
  assert.equal(anglicisms('COMPÉTENCES\nJava, Spring Boot, React Native').length,0);
 });
-test('concrete vague missions cost points; partial results never display a flattering total',()=>{
+test('concrete vague missions cost points; partial results display a qualified numeric score',()=>{
  const text='Camille Exemple\nexemple@example.com\nEXPÉRIENCES\nDéveloppement et optimisation de modules\nContacts avec le client\nFORMATION\nLicence\nCOMPÉTENCES\nJava';
  const report=enrichScan(raw,text,'');assert.ok(report.problemes.some(p=>p.ruleId==='vague_experience'&&p.points===6));
  assert.ok(enrichScan(raw,text.replace('Développement et optimisation de modules','• Développement et optimisation de modules'),'').problemes.some(p=>p.ruleId==='vague_experience'&&p.extrait?.startsWith('•')));
  assert.equal(report.problemes.filter(p=>p.ruleId==='vague_experience').length,2);assert.equal(report.evaluation?.dimensions.impact,8);
  assert.equal(report.evaluation?.method,'cvats-3');assert.equal(report.evaluation?.qualitativeComplete,false);
  const html=renderToStaticMarkup(React.createElement(ScanReport,{data:report,hasJob:false}));
- assert.match(html,/Relecture incomplète/);assert.match(html,/Note globale masquée/);assert.ok(!html.includes('Bonne base'));assert.ok(!html.includes('score-breakdown'));
+ assert.match(html,/Score indicatif/);assert.match(html,/peut surestimer/);assert.ok(!html.includes('Bonne base'));assert.ok(html.includes('score-breakdown'));assert.match(html,/>88<small>/);
 });

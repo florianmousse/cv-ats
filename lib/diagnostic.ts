@@ -15,8 +15,9 @@ export function localDiagnostics(source:string){
  const issues:Issue[]=[...anglicisms(source)];
  const add=(categorie:DiagnosticCategory,texte:string,extrait:string,correction:string,severite:Issue['severite']='moyenne')=>issues.push({categorie,texte,extrait,correction,severite,origine:'local'});
  // A small, explicit typo list supplements the model; it is not a general spellchecker.
- const typos:Record<string,string>={techonologies:'technologies',technolgies:'technologies',dévelopement:'développement',développeurss:'développeurs',expériance:'expérience',experiance:'expérience',responsablité:'responsabilité',fonctionnalitées:'fonctionnalités',autononome:'autonome'};
+ const typos:Record<string,string>={techonologies:'technologies',technolgies:'technologies',dévelopement:'développement',développeurss:'développeurs',expériance:'expérience',experiance:'expérience',responsablité:'responsabilité',fonctionnalitées:'fonctionnalités',autononome:'autonome',dévelloppement:'développement',developpement:'développement',dévelopemment:'développement',professionel:'professionnel',professionelle:'professionnelle',professionelles:'professionnelles',professionels:'professionnels',rigoureu:'rigoureux',acceuil:'accueil',acceuilir:'accueillir'};
  for(const word of source.match(/\p{L}+/gu)??[]){const replacement=typos[word.toLocaleLowerCase('fr')];if(replacement&&!issues.some(p=>p.extrait===word))add('orthographe',`Orthographe : « ${word} »`,word,`Remplacer par « ${replacement} ». Vérifie aussi les accords dans la phrase.`);}
+ for(const match of source.matchAll(/centres?\s+d[’']intérêts/gi))add('orthographe','Corriger la locution « centres d’intérêt »',match[0],match[0].replace(/intérêts/i,word=>word===word.toLocaleUpperCase('fr')?'INTÉRÊT':'intérêt'));
  const spaced=source.match(/(?:\p{Lu}[ \t]+){4,}\p{Lu}/u);
  if(spaced)add('typographie','Le titre contient des lettres séparées par des espaces',spaced[0],`Dans le texte du CV, écrire « ${spaced[0].replace(/[ \t]/g,'')} » en un seul mot. Vérifie si ces espaces viennent du document ou de son extraction ; ils peuvent gêner le repérage textuel.`);
  for(const [pattern,replacement] of [[/\bJavascript\b/g,'JavaScript'],[/\bGitlab\b/g,'GitLab'],[/\bGithub\b/g,'GitHub']] as const){const match=source.match(pattern);if(match)add('typographie',`Harmoniser l’écriture de ${replacement}`,match[0],`Utiliser la graphie « ${replacement} » de manière cohérente.`, 'faible');}
@@ -64,10 +65,21 @@ export function enrichScan(raw:Scan,source:string,job:string,facts?:DocumentFact
  const scan=groundScan(raw,source),local=localDiagnostics(source),mechanical=mechanicalChecks(source,facts);
  // The visual-analysis limitation belongs in the report introduction, not the correction list.
  const limitation=(value:string)=>/ne permet pas|impossible|ne peux pas|ne peut pas|pas possible|non évalu|non vérifi/i.test(value)&&/mise en page|couleurs|polices|colonnes|visuel/i.test(value);
- const modelIssues=scan.problemes.filter(p=>!limitation(p.texte)&&p.extrait&&p.categorie&&p.correction&&p.correction.trim().length>=20&&!/^(?:améliore[rz]? (?:le|votre|ton) cv|soyez plus précis|être plus précis|ajoute[rz]? des détails|corrige[rz]? les fautes)[.!\s]*$/i.test(p.correction.trim())).map(p=>({categorie:p.categorie,severite:p.severite,texte:p.texte,extrait:p.extrait,correction:p.correction,origine:'ia' as const}));
+ const modelIssues=scan.problemes.filter(p=>!limitation(p.texte)&&p.extrait&&p.categorie&&p.correction?.trim()&&/[\p{L}\p{N}]/u.test(p.correction)&&!/^(?:améliore[rz]? (?:le|votre|ton) cv|soyez plus précis|être plus précis|ajoute[rz]? des détails|corrige[rz]? les fautes)[.!\s]*$/i.test(p.correction.trim())).map(p=>({categorie:p.categorie,severite:p.severite,texte:p.texte,extrait:p.extrait,correction:p.correction,origine:'ia' as const}));
  const issues:Issue[]=[];
  for(const issue of [...local.issues,...mechanical.issues,...modelIssues]){
-  const duplicate=issues.findIndex(p=>(p.categorie===issue.categorie&&p.extrait&&issue.extrait&&(normalized(p.extrait).includes(normalized(issue.extrait))||normalized(issue.extrait).includes(normalized(p.extrait))))||normalized(p.texte)===normalized(issue.texte));
+  const duplicate=issues.findIndex(p=>{
+   if(p.categorie!==issue.categorie||!p.extrait||!issue.extrait)return p.texte===issue.texte&&p.extrait===issue.extrait;
+   const overlap=normalized(p.extrait).includes(normalized(issue.extrait))||normalized(issue.extrait).includes(normalized(p.extrait));
+   if(!overlap)return false;
+   // Several independent spelling/grammar corrections may quote the same sentence.
+   if(['orthographe','typographie','clarte'].includes(p.categorie??'')){
+    const a=normalized(p.correction??'').toLocaleLowerCase('fr'),b=normalized(issue.correction??'').toLocaleLowerCase('fr');
+    const quotedReplacement=p.origine==='local'?p.correction?.match(/Remplacer par « (.+?) »/)?.[1]:undefined;
+    return a===b||Boolean(quotedReplacement&&b.includes(quotedReplacement.toLocaleLowerCase('fr')));
+   }
+   return true;
+  });
   if(duplicate<0)issues.push(issue);
  }
  const requirements=localRequirements(source,job);
@@ -95,6 +107,8 @@ export function enrichScan(raw:Scan,source:string,job:string,facts?:DocumentFact
   return model??{categorie,statut:'non_evalue' as const,constat:'Le modèle n’a pas fourni de conclusion pour ce contrôle. Cela ne signifie pas qu’aucun problème n’existe.'};
  });
  const scored=scoreIssues(issues);
- const qualitativeComplete=Object.keys(diagnosticCategories).filter(c=>job||c!=='adequation').every(c=>scan.controles?.some(check=>check.categorie===c&&check.statut!=='non_evalue'&&check.statut!=='a_verifier'&&(check.statut!=='a_corriger'||modelIssues.some(p=>p.categorie===c))));
+ // Job fit is reported separately and never determines whether editorial scoring is available.
+ // An examined axis may legitimately remain "a_verifier" (for example ambiguous dates).
+ const qualitativeComplete=Object.keys(diagnosticCategories).filter(c=>c!=='adequation').every(c=>scan.controles?.some(check=>check.categorie===c&&check.statut!=='non_evalue'&&(check.statut!=='a_corriger'||issues.some(p=>p.categorie===c))));
  return {...scan,score:scored.score,criteres:undefined,problemes:scored.problemes,controles,mecanique:mechanical.checks,evaluation:{method:'cvats-3',dimensions:scored.dimensions,qualitativeComplete,rejectedSuggestions:scan.problemes.length-modelIssues.length},exigences:requirements.slice(0,100),mesures:local.mesures,motsClesManquants:missing.slice(0,100),recommandations:scored.problemes.filter(p=>p.correction).slice(0,3).map(p=>p.correction!)};
 }

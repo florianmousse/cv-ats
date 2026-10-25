@@ -26,3 +26,13 @@ Appliquer **004_candidature_workflows.sql après 001, 002 et 003**, puis redépl
 ## Vérifications
 
 Tests de restauration, isolation par compte, expiration, données invalides, version courante analysée, diagnostic ancien, prompts, anglicismes, score incomplet, génération/audit de lettre et quotas SQL. Contrôle navigateur sur des données fictives : édition → scan → correction → actualisation, lettre modifiée restaurée, erreur de quota sans perte de document et copie d’un prompt contenant les corrections récentes. Aucun appel Gemini réel dans ces vérifications. La qualité de toutes les réponses réelles n’est pas garantie par des tests simulés.
+
+## Corrections 1.8.1
+
+La note est toujours affichée avec la mention « Score indicatif » lorsque la couverture qualitative est incomplète. Une réserve d’adéquation à l’offre ne bloque plus le score rédactionnel. Les corrections courtes et les erreurs indépendantes dans une même phrase sont conservées.
+
+La lettre est générée en trois champs structurés JE / VOUS / NOUS, assemblés en trois paragraphes après la formule d’appel. Le second appel vérifie la fidélité au CV et aux sources, ainsi que la présence d’éléments spécifiques au parcours et à l’offre. Une proposition jugée générique est rejetée sans remplacer le brouillon. Les quotas restent inchangés (deux appels maximum).
+
+Un panneau facultatif permet de rechercher les publications d’une entreprise puis de renseigner son nom, le lien, un court extrait vérifié par l’utilisateur et la date de publication si connue. Le site n’effectue aucune requête vers ces URLs et ne prétend pas avoir vérifié l’article. Une URL seule est refusée avant tout appel IA. Sans source, le paragraphe VOUS repose sur l’annonce. Les sources sans lien utile avec le poste sont à ignorer. Le prompt interdit les actualités inventées, les faits déduits du seul lien et les affirmations de recherche non réalisée. La date peut être historique : aucune qualification automatique de « récent ».
+
+Ces champs sont sauvegardés dans le cache local et inclus dans le prompt exportable de lettre. Les anciens brouillons restent lisibles grâce aux valeurs par défaut. Modifier les notes ou la source après génération signale que le contexte de la lettre a changé. Aucune migration supplémentaire n’est requise après 004 pour cette version.

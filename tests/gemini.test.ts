@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { askGemini } from '../lib/gemini';
 import { parseModelJSON, cvSchema, labels, toPlainText, assertGroundedFields } from '../lib/cv';
 import { POST } from '../app/api/analyze/route';
+import {composeLetter,letterSectionsSchema} from '../lib/candidature-prompts';
 import { cookieName } from '../lib/auth/session';
 
 const fixture = {
@@ -60,6 +61,7 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
   const token='header.'+Buffer.from(JSON.stringify({app_metadata:metadata})).toString('base64url')+'.signature';
   const authUser={id:'00000000-0000-4000-8000-000000000001',email:'test@example.com',app_metadata:metadata};
   let ordinal=0;const events:string[]=[];const reported:Array<Record<string,unknown>>=[];
+  const providerBodies:Array<Record<string,unknown>>=[];
   const stub=(fn:()=>Response)=>(async(url:RequestInfo|URL,init?:RequestInit)=>{
     const path=new URL(String(url)).pathname;
     if(path==='/auth/v1/user')return Response.json(authUser);
@@ -72,11 +74,11 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
       if(name==='cvats_finish')assert.ok(args.p_run);
       return Response.json(null);
     }
-    events.push('gemini');return fn();
+    events.push('gemini');providerBodies.push(JSON.parse(String(init?.body)));return fn();
   }) as typeof fetch;
   const previousModel = process.env.GEMINI_MODEL;
   const realFetch = globalThis.fetch;
-  const request = (mode: string, job = '') => new Request('https://cv-ats.example/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin:'https://cv-ats.example',Cookie:cookieName()+'='+token }, body: JSON.stringify({ mode, cv: toPlainText(fixture), job }) });
+  const request = (mode: string, job = '', extra:Record<string,unknown>={}) => new Request('https://cv-ats.example/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json', Origin:'https://cv-ats.example',Cookie:cookieName()+'='+token }, body: JSON.stringify({ mode, cv: toPlainText(fixture), job, ...extra }) });
   try {
     delete process.env.GEMINI_API_KEY;
     globalThis.fetch=stub(()=>{throw new Error('Unexpected Gemini request');});
@@ -106,13 +108,19 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: false, titres: labels }));
     assert.equal((await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'))).status, 422);
     count=0;
-    const letter={text:'Madame, Monsieur,\n\nMon expérience dans la maintenance d’applications React me permet de contribuer aux missions de développement présentées dans votre annonce. Je souhaite échanger avec vous sur ce poste.'};
-    globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:true}));
-    const letterResponse=await POST(request('letter','Poste de développeuse web React : maintenance des applications.'));
-    assert.equal(letterResponse.status,200);assert.equal(count,2);assert.equal((await letterResponse.json()).data.text,letter.text);
-    count=0;globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:false}));
+    const letter={je:'Je maintiens trois applications React au sein d’Entreprise Exemple. Cette expérience me donne un point d’appui concret pour vos missions de maintenance.',vous:'Votre annonce met l’accent sur la maintenance des applications React. Ce travail de continuité et d’amélioration correspond au type de développement auquel je souhaite contribuer.',nous:'Nous pourrions échanger sur les applications à maintenir et sur la manière dont mon expérience peut répondre à ces besoins. Je vous remercie de l’attention portée à ma candidature.'};
+    const research={company:'Entreprise Cible',excerpt:'Entreprise Cible présente un nouveau portail de suivi des demandes.',url:'https://entreprise.example/actualites/portail',date:'2026-09-01'};
+    globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:true,specifique:true}));
+    const letterResponse=await POST(request('letter','Poste de développeuse web React : maintenance des applications.',{companyResearch:research}));
+    assert.equal(letterResponse.status,200);assert.equal(count,2);assert.equal((await letterResponse.json()).data.text,composeLetter(letterSectionsSchema.parse(letter)));
+    for(const body of providerBodies.slice(-2))assert.match(JSON.stringify(body),/nouveau portail de suivi/);
+    count=0;globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:false,specifique:true}));
+    assert.equal((await POST(request('letter','Poste de développeuse web React : maintenance des applications.'))).status,422);assert.equal(count,2);
+    count=0;globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:true,specifique:false}));
     assert.equal((await POST(request('letter','Poste de développeuse web React : maintenance des applications.'))).status,422);assert.equal(count,2);
     count=0;assert.equal((await POST(request('letter'))).status,400);assert.equal(count,0);
+    assert.equal((await POST(request('letter','Poste de développeuse web React : maintenance des applications.',{companyResearch:{...research,excerpt:''}}))).status,400);assert.equal(count,0);
+    assert.equal((await POST(request('letter','Poste de développeuse web React : maintenance des applications.',{companyResearch:{...research,url:'javascript:alert(1)'}}))).status,400);assert.equal(count,0);
     globalThis.fetch=stub(()=>success(++count===1?fixture:{fidele:true,titres:labels}));
     assert.equal((await POST(request('structure'))).status,200);assert.equal(count,2);
   } finally {

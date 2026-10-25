@@ -135,3 +135,7 @@ Sources officielles consultées le 27 septembre 2026 :
 - https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite
 - https://ai.google.dev/gemini-api/terms
 - https://vercel.com/docs/functions/limitations
+
+### Correctifs 1.8.1
+
+Score toujours visible (indicatif si relecture incomplète), corrections orthographiques courtes préservées, plusieurs fautes d’une même phrase conservées. Lettres en trois paragraphes Je / Vous / Nous avec contrôle de personnalisation et actualité facultative renseignée par l’utilisateur (extrait, source, date). Les URLs ne sont pas consultées automatiquement. Voir [le guide candidature](docs/CANDIDATURE.md). Aucune migration supplémentaire après 004.

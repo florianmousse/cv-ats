@@ -1,15 +1,17 @@
 import {z} from 'zod';
 import {scanSchema,toPlainText} from './cv';
 import {optimizedSchema} from './data/saves';
+import {companyResearchSchema,emptyCompanyResearch} from './company-research';
 
 export const workspaceSchema=z.object({
  source:z.string().max(40000),text:z.string().max(40000),job:z.string().max(30000),filename:z.string().max(255),
  draft:optimizedSchema.nullable(),scan:z.object({data:scanSchema,cv:z.string().max(40000),job:z.string().max(30000)}).strict().nullable(),
  letter:z.string().max(16000),letterCV:z.string().max(40000),letterJob:z.string().max(30000),notes:z.string().max(4000),
+ companyResearch:companyResearchSchema.default(emptyCompanyResearch),letterContext:z.string().max(60000).default(''),
  tab:z.enum(['cv','diagnostic','letter','tools']),
 }).strict();
 export type WorkspaceDraft=z.infer<typeof workspaceSchema>;
-export const emptyWorkspace=():WorkspaceDraft=>({source:'',text:'',job:'',filename:'',draft:null,scan:null,letter:'',letterCV:'',letterJob:'',notes:'',tab:'cv'});
+export const emptyWorkspace=():WorkspaceDraft=>({source:'',text:'',job:'',filename:'',draft:null,scan:null,letter:'',letterCV:'',letterJob:'',notes:'',companyResearch:emptyCompanyResearch(),letterContext:'',tab:'cv'});
 export const currentCV=(state:WorkspaceDraft)=>state.draft?toPlainText(state.draft.data,state.draft.headings):state.text;
 export const isScanStale=(state:WorkspaceDraft)=>Boolean(state.scan&&(state.scan.cv!==currentCV(state)||state.scan.job!==state.job));
 export const cacheKey=(userId:string)=>`cvats:workspace:v1:${userId}`;
