@@ -32,7 +32,7 @@ L’atelier et les API sont réservés aux comptes autorisés. L’administrateu
 
 ## Démarrage rapide
 
-Prérequis : Node.js 22 LTS et npm. Ouvrir un terminal dans le dossier contenant `package.json`.
+Prérequis : Node.js 24 LTS, version 24.22.1 minimum dans la branche 24, et npm. `.nvmrc` fixe la version de référence ; `npm ci` refuse un moteur incompatible. Ouvrir un terminal dans le dossier contenant `package.json`.
 
 ```bash
 npm ci

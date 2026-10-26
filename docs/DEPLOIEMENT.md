@@ -49,7 +49,7 @@ Remplacer `TON-COMPTE` par le compte réel. Si tu téléverses par l’interface
 2. Autoriser l’accès au dépôt GitHub, puis l’importer.
 3. Framework : **Next.js**.
 4. Root Directory : le dossier contenant `package.json` (la racine si l’étape précédente a été suivie).
-5. Node.js : **22.x** dans les réglages du projet.
+5. Node.js : **24.x** dans les réglages du projet. Le `package.json` impose la branche 24 à partir de **24.22.1** ; Vercel gère les mises à jour mineures et correctives de cette branche.
 6. Build Command : `npm run build` (détection automatique possible).
 7. Install Command : `npm ci`.
 8. Output Directory : laisser la valeur Next.js par défaut ; ne pas mettre `out` ou `dist`.
@@ -71,6 +71,8 @@ L’application utilise des fonctions Node.js et Supabase Auth. **Projet neuf : 
 
 ## 5. Vérifier après déploiement
 
+- Publier les modifications de `package.json`, `package-lock.json`, `.npmrc` et `.nvmrc`, puis créer un nouveau déploiement. Un simple redéploiement d'un ancien commit n'inclut pas ces modifications.
+- Vérifier dans les logs du build la version affichée par `npm run build` : **v24.22.1 ou une version 24.x ultérieure**. Pour confirmer la version des fonctions déjà en production, consulter leurs informations d'exécution ou journaliser temporairement `process.version` côté serveur ; la version du PC ne suffit pas. Ne pas exposer une route publique de diagnostic.
 - Ouvrir le site, se connecter en tant qu’administrateur et changer le mot de passe temporaire.
 - Importer un petit PDF ou DOCX non confidentiel de test.
 - Vérifier qu’une fenêtre privée non connectée n’accède pas à l’atelier.
