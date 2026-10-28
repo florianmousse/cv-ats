@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     try {
       const user = await requireUser(req, true);
       const { error } = await adminClient().auth.admin.updateUserById(user.id, { app_metadata: { access_version: randomUUID() } });
-      if (error) throw new PublicError('La déconnexion n’a pas abouti. Réessaie.', 503);
+      if (error) throw new PublicError('La déconnexion n\'a pas abouti. Réessaie.', 503);
     } catch (error) {
       if (!(error instanceof PublicError) || ![401, 403].includes(error.status)) throw error;
     }

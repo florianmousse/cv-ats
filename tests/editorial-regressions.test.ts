@@ -19,21 +19,21 @@ test('short spelling and grammar corrections survive grounding and independent i
 test('job-fit uncertainty and examined editorial ambiguity do not invalidate the score; missing axes stay incomplete',()=>{
  const controles=(Object.keys(diagnosticCategories) as Array<keyof typeof diagnosticCategories>).map(categorie=>({categorie,statut:categorie==='adequation'?'non_evalue' as const:categorie==='chronologie'?'a_verifier' as const:'ok' as const,constat:'Examiné ; précision nécessaire pour les dates.'}));
  const source='exemple@example.com\nEXPÉRIENCES\nMaintenance du portail interne\nCOMPÉTENCES\nJava\nFORMATION\nLicence';
- assert.equal(enrichScan({...raw,controles},source,'Minimum 5 ans d’expérience en Java').evaluation?.qualitativeComplete,true);
+ assert.equal(enrichScan({...raw,controles},source,'Minimum 5 ans d\'expérience en Java').evaluation?.qualitativeComplete,true);
  assert.equal(enrichScan({...raw,controles:controles.filter(c=>c.categorie!=='orthographe')},source,'').evaluation?.qualitativeComplete,false);
  const withTypo=source+'\nCurieux des techonologies';
  assert.equal(enrichScan({...raw,controles:controles.map(c=>c.categorie==='orthographe'?{...c,statut:'a_corriger'}:c)},withTypo,'').evaluation?.qualitativeComplete,true);
 });
 test('local spelling and model spelling do not charge the same correction twice',()=>{
- const result=enrichScan({...raw,problemes:[{categorie:'orthographe',severite:'moyenne',texte:'Coquille',extrait:'Curieux des techonologies',correction:'technologies'}]},'exemple@example.com\nCurieux des techonologies\nCENTRES D’INTÉRÊTS','');
+ const result=enrichScan({...raw,problemes:[{categorie:'orthographe',severite:'moyenne',texte:'Coquille',extrait:'Curieux des techonologies',correction:'technologies'}]},'exemple@example.com\nCurieux des techonologies\nCENTRES D\'INTÉRÊTS','');
  assert.equal(result.problemes.filter(p=>p.correction?.includes('technologies')).length,1);
- assert.ok(result.problemes.some(p=>p.correction==='CENTRES D’INTÉRÊT'));
+ assert.ok(result.problemes.some(p=>p.correction==='CENTRES D\'INTÉRÊT'));
 });
 test('letter has exactly three body paragraphs; sources survive cache and external prompts, old caches still load',()=>{
  const sections=letterSectionsSchema.parse({je:'Je maintiens les interfaces React du portail de suivi des commandes.\n\nCette expérience me prépare à vos missions.',vous:'Votre annonce décrit un besoin de maintenance des applications que je souhaite approfondir.',nous:'Nous pourrions échanger sur le suivi de vos applications et sur ma contribution à leur maintenance.'});
  assert.equal(composeLetter(sections).split('\n\n').length,4); // salutation + three body paragraphs
  assert.throws(()=>letterSectionsSchema.parse({...sections,vous:''}));
- const state=emptyWorkspace();state.companyResearch={company:'Entreprise Exemple',url:'https://exemple.test/actualites',date:'2026-09-01',excerpt:'L’entreprise présente un nouveau portail.'};
+ const state=emptyWorkspace();state.companyResearch={company:'Entreprise Exemple',url:'https://exemple.test/actualites',date:'2026-09-01',excerpt:'L\'entreprise présente un nouveau portail.'};
  assert.deepEqual(decodeDraft(encodeDraft('a',state,1000),'a',2000)?.companyResearch,state.companyResearch);
  const envelope=JSON.parse(encodeDraft('a',state,1000));delete envelope.state.companyResearch;delete envelope.state.letterContext;
  assert.deepEqual(decodeDraft(JSON.stringify(envelope),'a',2000)?.companyResearch,emptyCompanyResearch());

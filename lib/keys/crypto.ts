@@ -5,7 +5,7 @@ import {PublicError} from '@/lib/http';
 function encryptionSecret():Buffer {
  const raw=process.env.API_KEY_ENCRYPTION_SECRET?.trim()??'';
  const secret=Buffer.from(raw,'base64');
- if(secret.length!==32||secret.toString('base64')!==raw)throw new PublicError('Le chiffrement des clés personnelles n’est pas configuré. Le propriétaire doit définir API_KEY_ENCRYPTION_SECRET côté serveur.',503);
+ if(secret.length!==32||secret.toString('base64')!==raw)throw new PublicError('Le chiffrement des clés personnelles n\'est pas configuré. Le propriétaire doit définir API_KEY_ENCRYPTION_SECRET côté serveur.',503);
  return secret;
 }
 export function encryptionConfigured(){try{encryptionSecret();return true;}catch{return false;}}
@@ -24,5 +24,5 @@ export function decryptKey(envelope:string,userId:string):string{
   const decipher=createDecipheriv('aes-256-gcm',secret,iv);
   decipher.setAAD(Buffer.from('cvats:gemini:'+userId));decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(ciphertext),decipher.final()]).toString('utf8');
- }catch{throw new PublicError('Ta clé personnelle ne peut pas être déchiffrée. Remplace-la dans Mon compte ou contacte le propriétaire. La clé du site n’a pas été utilisée.',503);}
+ }catch{throw new PublicError('Ta clé personnelle ne peut pas être déchiffrée. Remplace-la dans Mon compte ou contacte le propriétaire. La clé du site n\'a pas été utilisée.',503);}
 }

@@ -61,7 +61,7 @@ test('dimension caps, visible penalties and total score agree',()=>{
  assert.equal(Object.values(scored.dimensions).reduce((a,b)=>a+b,0),scored.score);
 });
 test('short CV, page count and job mismatch never create automatic penalties',()=>{
- const result=enrichScan(raw,source,'Minimum 5 ans d’expérience en Java 17',{format:'pdf',pages:3,charactersPerPage:[80,70,50]});
+ const result=enrichScan(raw,source,'Minimum 5 ans d\'expérience en Java 17',{format:'pdf',pages:3,charactersPerPage:[80,70,50]});
  assert.equal(result.score,100);
  assert.equal(result.evaluation?.qualitativeComplete,false);
  assert.ok(result.problemes.every(p=>p.points===0));

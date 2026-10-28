@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     // Recheck current permissions after password verification, before mutation.
     await requireUser(req, true);
     const { error } = await adminClient().auth.admin.updateUserById(user.id, { password: input.password, app_metadata: { must_change_password: false, access_version: randomUUID() } });
-    if (error) throw new PublicError('Le mot de passe n’a pas pu être changé. Vérifie les exigences de sécurité puis réessaie.');
+    if (error) throw new PublicError('Le mot de passe n\'a pas pu être changé. Vérifie les exigences de sécurité puis réessaie.');
     const response = json({ ok: true });
     response.headers.set('Set-Cookie', sessionCookie('', 0));
     return response;

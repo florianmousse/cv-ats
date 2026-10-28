@@ -4,7 +4,7 @@ export const keywordGuides:Record<string,{label:string;groups:KeywordGroup[]}>={
   {title:'Intitulés à comparer à ton offre',terms:['Développeur web','Développeur front-end','Développeur back-end','Développeur full-stack']},
   {title:'Front-end et mobile',terms:['HTML','CSS','Sass','JavaScript','TypeScript','React','Angular','RxJS','Vue.js','Next.js','Nuxt','Twig','Flutter','React Native']},
   {title:'Back-end et données',terms:['Java','Spring Boot','Hibernate','PHP','Symfony','Laravel','Node.js','Express','NestJS','Python','Django','FastAPI','C#','.NET','C++','SQL','PostgreSQL','MySQL','MongoDB','Redis','Appwrite']},
-  {title:'Tests et qualité',terms:['Tests unitaires','Tests d’intégration','JUnit','PHPUnit','Behat','Jest','Vitest','Cypress','Playwright','Selenium','SonarQube','Accessibilité','Revue de code','Recette']},
+  {title:'Tests et qualité',terms:['Tests unitaires','Tests d\'intégration','JUnit','PHPUnit','Behat','Jest','Vitest','Cypress','Playwright','Selenium','SonarQube','Accessibilité','Revue de code','Recette']},
   {title:'Livraison et outils',terms:['Git','GitLab','GitHub','Maven','Gradle','Jenkins','CI/CD','Intégration continue','Livraison continue','Déploiement continu','Pipeline multibranches','Nexus','Docker','Kubernetes','API REST','GraphQL','Microservices']},
  ]},
  data:{label:'Analyse de données',groups:[
@@ -29,14 +29,14 @@ export const keywordGuides:Record<string,{label:string;groups:KeywordGroup[]}>={
  ]},
  transversal:{label:'Missions, langues et qualités',groups:[
   {title:'Missions et contexte',terms:['Développement','Intégration','Accompagnement des développeurs','Conception','Spécifications techniques','Documentation','Finance','ERP','Cloud','Testing']},
-  {title:'Qualités à illustrer',terms:['Autonomie','Rigueur','Adaptation','Esprit d’équipe','Analyse','Synthèse','Communication','Gestion de projet','Méthodes agiles']},
-  {title:'Langues',terms:['Anglais','Allemand','Espagnol','Français','TOEIC','B2','C1']},
+  {title:'Qualités à illustrer',terms:['Autonomie','Rigueur','Adaptation','Esprit d\'équipe','Analyse','Synthèse','Communication','Gestion de projet','Méthodes agiles']},
+  {title:'Langues',terms:['Anglais','Allemand','Espagnol','Français','TOEIC','Bilingue','A1','A2','B1','B2','C1','C2']},
  ]},
 };
 
 // Literal word boundaries prevent Java matching JavaScript or SQL matching NoSQL.
 // Normalise accents and typography, but never infer a skill from a related tool.
-export function normalizeKeyword(text:string){return text.normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('fr').replace(/[’‘]/g,"'").replace(/[‐‑–—]/g,'-').replace(/\s+/g,' ').trim();}
+export function normalizeKeyword(text:string){return text.normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('fr').replace(/[\u2019‘]/g,"'").replace(/[‐‑–—]/g,'-').replace(/\s+/g,' ').trim();}
 const normalize=normalizeKeyword;
 export function containsKeyword(text:string,keyword:string){
  return containsNormalized(normalize(text),keyword);
@@ -53,7 +53,7 @@ const aliases:Record<string,string[]>={
  React:['React','ReactJS','React.js'], 'Vue.js':['Vue.js','VueJS','Vue'], 'Node.js':['Node.js','NodeJS'],
  JavaScript:['JavaScript','Javascript'], TypeScript:['TypeScript'], 'CI/CD':['CI/CD','CI / CD'],
  'Pipeline multibranches':['Pipeline multibranches','Pipelines multibranches','Multibranch pipeline'],
- 'Esprit d’équipe':['Esprit d’équipe','Travail en équipe','Travailler en équipe'],
+ 'Esprit d\'équipe':['Esprit d\'équipe','Travail en équipe','Travailler en équipe'],
  Autonomie:['Autonomie','Autonome'], Rigueur:['Rigueur','Rigoureux','Rigoureuse'],
  'API REST':['API REST','API RESTful'], 'Tests unitaires':['Tests unitaires','Test unitaire','Unit testing'],
 };

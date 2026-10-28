@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const { email } = z.object({ email: emailSchema }).strict().parse(await bodyOf(req));
     const password = 'Cv!' + randomBytes(18).toString('base64url');
     const { data, error } = await adminClient().auth.admin.createUser({ email, password, email_confirm: true, app_metadata: { cvats: true, cvats_role: 'member', enabled: true, must_change_password: true, access_version: randomUUID() } });
-    if (error || !data.user) throw new PublicError('Le compte n’a pas pu être créé. Vérifie notamment si cette adresse existe déjà.');
+    if (error || !data.user) throw new PublicError('Le compte n\'a pas pu être créé. Vérifie notamment si cette adresse existe déjà.');
     return json({ user: publicAccount(data.user), temporaryPassword: password }, 201);
   } catch (error) { return authError(error); }
 }

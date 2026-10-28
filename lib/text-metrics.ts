@@ -1,4 +1,4 @@
-export function countWords(source:string){return (source.match(/[\p{L}\p{N}]+(?:[’'./+#-][\p{L}\p{N}]+)*/gu)??[]).length;}
+export function countWords(source:string){return (source.match(/[\p{L}\p{N}]+(?:[\u2019'./+#-][\p{L}\p{N}]+)*/gu)??[]).length;}
 
 /** Conservative segmentation of experience text, joining extraction-induced line wraps. */
 export function experiencePhrases(source:string){
@@ -13,7 +13,7 @@ export function experiencePhrases(source:string){
  const flush=()=>{if(current)phrases.push(current);current='';};
  for(const line of section){
   if(begins.test(line)){flush();current=line;}
-  else if(current&&!/^\p{Lu}[\p{Lu}\s’'—-]+$/u.test(line)&&!/(?:\b(?:19|20)\d{2}\b|\|)/.test(line)){current+='\n'+line;}
+  else if(current&&!/^\p{Lu}[\p{Lu}\s\u2019'—-]+$/u.test(line)&&!/(?:\b(?:19|20)\d{2}\b|\|)/.test(line)){current+='\n'+line;}
   else flush();
  }
  flush();return phrases;

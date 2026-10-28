@@ -11,8 +11,8 @@ export type CompanyResearch=z.infer<typeof companyResearchSchema>;
 export const emptyCompanyResearch=():CompanyResearch=>({company:'',excerpt:'',url:'',date:''});
 export function researchError(value:CompanyResearch):string|null{
  if(!value.excerpt&&!value.url&&!value.date)return null;
- if(!value.company)return 'Indique le nom de l’entreprise concernée par cette actualité.';
- if(!value.excerpt)return 'Colle le passage pertinent de l’article : une URL seule ne permet pas de le lire.';
+ if(!value.company)return 'Indique le nom de l\'entreprise concernée par cette actualité.';
+ if(!value.excerpt)return 'Colle le passage pertinent de l\'article : une URL seule ne permet pas de le lire.';
  try{const url=new URL(value.url);if(!['https:','http:'].includes(url.protocol)||url.username||url.password)throw new Error();}catch{return 'Ajoute un lien HTTP ou HTTPS vers la source de cette actualité.';}
  if(value.date&&(!/^\d{4}-\d{2}-\d{2}$/.test(value.date)||Number.isNaN(Date.parse(value.date))||new Date(value.date).toISOString().slice(0,10)!==value.date))return 'Indique une date de publication valide, ou laisse-la vide si elle est inconnue.';
  return null;

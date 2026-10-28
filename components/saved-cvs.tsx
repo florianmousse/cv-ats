@@ -33,14 +33,14 @@ export default function SavedCVs({cv,job,result,disabled,onLoad,onWorking,saveIn
  const locked=disabled||working;
  return <section className="saves-panel" aria-labelledby="saves-title" aria-busy={working||loading}>
   <div className="panel-heading"><div><h2 id="saves-title">Mes sauvegardes</h2><p>Enregistrement volontaire dans Supabase. Chaque version reste privée à ton compte.</p></div><span>{saves.length} / 20 versions</span></div>
-  <div className="saves-grid"><form onSubmit={save}><label htmlFor="save-name">Nom de la nouvelle version</label><input id="save-name" value={name} onChange={e=>setName(e.target.value)} maxLength={100} required disabled={locked} placeholder="Ex. CV développeur — septembre"/>
-   <label className="checkbox-label"><input type="checkbox" checked={includeJob} onChange={e=>setIncludeJob(e.target.checked)} disabled={locked}/>Conserver aussi l’annonce</label>
+  <div className="saves-grid"><form onSubmit={save}><label htmlFor="save-name">Nom de la nouvelle version</label><input id="save-name" value={name} onChange={e=>setName(e.target.value)} maxLength={100} required disabled={locked} placeholder="Ex. CV développeur - septembre"/>
+   <label className="checkbox-label"><input type="checkbox" checked={includeJob} onChange={e=>setIncludeJob(e.target.checked)} disabled={locked}/>Conserver aussi l&apos;annonce</label>
    <label className="checkbox-label"><input type="checkbox" checked={includeResult} onChange={e=>setIncludeResult(e.target.checked)} disabled={locked||!result}/>Conserver aussi le CV édité et son style{!result&&' (après structuration ou optimisation)'}</label>
    <button className="secondary-button" disabled={locked||cv.trim().length<30||saves.length>=20}>{working?'Opération en cours…':'Enregistrer une nouvelle version'}</button>
   </form><div><label htmlFor="saved-cv">Charger une version enregistrée</label><select id="saved-cv" value={selected} onChange={e=>setSelected(e.target.value)} disabled={locked||loading}>
-   <option value="">{loading?'Chargement…':'Choisir une sauvegarde'}</option>{saves.map(s=><option key={s.id} value={s.id}>{s.name} — {new Date(s.created_at).toLocaleDateString('fr-FR')}</option>)}</select>
+   <option value="">{loading?'Chargement…':'Choisir une sauvegarde'}</option>{saves.map(s=><option key={s.id} value={s.id}>{s.name} - {new Date(s.created_at).toLocaleDateString('fr-FR')}</option>)}</select>
    <div className="button-row"><button className="secondary-button" onClick={restore} disabled={locked||!selected||loading}>Charger</button><button className="secondary-button danger-action" onClick={remove} disabled={locked||!selected||loading}>Supprimer</button><button className="text-button" disabled={locked||loading} onClick={()=>{setError('');setRevision(v=>v+1);}}>Actualiser</button></div>
-   <p>Le fichier PDF ou Word d’origine n’est jamais conservé. Ces versions sont enregistrées sur demande ; le brouillon local est géré séparément.</p>
+   <p>Le fichier PDF ou Word d&apos;origine n&apos;est jamais conservé. Ces versions sont enregistrées sur demande ; le brouillon local est géré séparément.</p>
   </div></div>{error&&<p className="message error" role="alert">{error}</p>}{notice&&<p className="message success" role="status">{notice}</p>}
  </section>;
 }

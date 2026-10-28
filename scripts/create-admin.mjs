@@ -29,7 +29,7 @@ try {
     if (error) throw new Error('Création refusée. Vérifie les clés, le mot de passe et si le compte existe déjà. Pour récupérer un administrateur existant : npm run admin:reset.');
   }
   console.log(reset ? 'Administrateur réinitialisé. Les anciennes sessions sont révoquées.' : 'Administrateur créé.');
-  console.log('Connecte-toi, puis change le mot de passe temporaire. Retire ensuite ADMIN_PASSWORD de .env.local. Aucun e-mail n’a été envoyé.');
+  console.log('Connecte-toi, puis change le mot de passe temporaire. Retire ensuite ADMIN_PASSWORD de .env.local. Aucun e-mail n\'a été envoyé.');
 } catch (error) {
   console.error(error instanceof Error ? error.message : 'Opération impossible.');
   process.exitCode = 1;

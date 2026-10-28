@@ -39,7 +39,7 @@ export async function DELETE(req: Request, ctx: Context) {
   try {
     const { client, id } = await target(req, ctx);
     const { error } = await client.auth.admin.deleteUser(id);
-    if (error) throw new PublicError('Le compte n’a pas pu être supprimé.', 503);
+    if (error) throw new PublicError('Le compte n\'a pas pu être supprimé.', 503);
     return json({ ok: true });
   } catch (error) { return authError(error); }
 }

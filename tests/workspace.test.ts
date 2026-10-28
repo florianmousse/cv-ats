@@ -33,8 +33,8 @@ test('external prompts contain current documents, guarded instructions and lette
  }
 });
 test('anglicisms are contextual alternatives without corrupting technology or English CVs',()=>{
- const issues=anglicisms('COMPÉTENCES\nManagement d’équipe, reporting et feedback\nJava, Spring Boot, React Native');
- assert.ok(issues.some(p=>p.correction?.includes('encadrement')));assert.ok(issues.every(p=>p.extrait==='Management d’équipe, reporting et feedback'));
+ const issues=anglicisms('COMPÉTENCES\nManagement d\'équipe, reporting et feedback\nJava, Spring Boot, React Native');
+ assert.ok(issues.some(p=>p.correction?.includes('encadrement')));assert.ok(issues.every(p=>p.extrait==='Management d\'équipe, reporting et feedback'));
  assert.equal(anglicisms('Skills\nTeam management and reporting\nWork experience').length,0);
  assert.equal(anglicisms('COMPÉTENCES\nJava, Spring Boot, React Native').length,0);
 });

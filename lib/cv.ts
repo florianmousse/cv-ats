@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import {categorySchema,checkSchema,requirementSchema,dimensionSchema,mechanicalCheckSchema,scoreDetailsSchema} from './diagnostic-schema';
+import {categorySchema,checkSchema,requirementSchema,dimensionSchema,mechanicalCheckSchema,scoreDetailsSchema,languageCheckSchema} from './diagnostic-schema';
 const text = z.string().max(12000);
 export const cvSchema = z.object({
   nom: text, titre: text,
@@ -7,10 +7,15 @@ export const cvSchema = z.object({
   profil:text,
   experiences:z.array(z.object({poste:text, entreprise:text, dates:text, puces:z.array(text).max(30)}).strict()).max(40),
   competences:z.array(text).max(100),
-  formation:z.array(z.object({intitule:text, etablissement:text, dates:text}).strict()).max(30)
+  formation:z.array(z.object({intitule:text, etablissement:text, dates:text, details:text.optional()}).strict()).max(30),
+  langues:z.array(z.object({langue:text,niveau:text,certification:text,score:text,date:text}).strict()).max(20).optional(),
+  certifications:z.array(z.object({intitule:text,organisme:text,date:text,details:text}).strict()).max(30).optional(),
+  projets:z.array(z.object({nom:text,description:text,lien:text}).strict()).max(30).optional(),
+  interets:z.array(text).max(30).optional(),
+  autresSections:z.array(z.object({titre:text,contenu:text}).strict()).max(15).optional()
 }).strict();
 const criterion=z.number().int().min(0).max(20);
-export const scanSchema=z.object({score:z.number().int().min(0).max(100),criteres:z.object({identite:criterion,sections:criterion,structure:criterion,precision:criterion,pertinence:criterion}).strict().optional(),pointsForts:z.array(text).max(30),problemes:z.array(z.object({severite:z.enum(['élevée','moyenne','faible']),texte:text,extrait:text.optional(),correction:text.optional(),categorie:categorySchema.optional(),origine:z.enum(['local','ia']).optional(),ruleId:z.string().max(60).optional(),dimension:dimensionSchema.optional(),points:z.number().int().min(0).max(20).optional()}).strict()).max(60),motsClesManquants:z.array(text).max(100),recommandations:z.array(text).max(30),controles:z.array(checkSchema).max(10).optional(),exigences:z.array(requirementSchema).max(100).optional(),mecanique:z.array(mechanicalCheckSchema).length(14).optional(),evaluation:scoreDetailsSchema.optional(),mesures:z.object({mots:z.number().int().nonnegative(),phrasesExperience:z.number().int().nonnegative(),phrasesCourtes:z.number().int().nonnegative(),phrasesLongues:z.number().int().nonnegative()}).strict().optional()}).strict();
+export const scanSchema=z.object({score:z.number().int().min(0).max(100),criteres:z.object({identite:criterion,sections:criterion,structure:criterion,precision:criterion,pertinence:criterion}).strict().optional(),pointsForts:z.array(text).max(30),problemes:z.array(z.object({severite:z.enum(['élevée','moyenne','faible']),texte:text,extrait:text.optional(),correction:text.optional(),categorie:categorySchema.optional(),origine:z.enum(['local','ia']).optional(),ruleId:z.string().max(60).optional(),dimension:dimensionSchema.optional(),points:z.number().int().min(0).max(20).optional()}).strict()).max(60),motsClesManquants:z.array(text).max(100),recommandations:z.array(text).max(30),controles:z.array(checkSchema).max(10).optional(),exigences:z.array(requirementSchema).max(100).optional(),mecanique:z.array(mechanicalCheckSchema).length(14).optional(),evaluation:scoreDetailsSchema.optional(),verificationsLangues:z.array(languageCheckSchema).max(100).optional(),mesures:z.object({mots:z.number().int().nonnegative(),phrasesExperience:z.number().int().nonnegative(),phrasesCourtes:z.number().int().nonnegative(),phrasesLongues:z.number().int().nonnegative()}).strict().optional()}).strict();
 export type CV=z.infer<typeof cvSchema>;
 export type Scan=z.infer<typeof scanSchema>;
 /** Only quote text that is actually in the supplied CV; never invent evidence. */
@@ -33,19 +38,33 @@ export function parseModelJSON(raw:string):unknown {
   }
   throw new Error('La réponse reçue est illisible. Réessaie.');
 }
-export const labels={profil:'Profil',experiences:'Expérience professionnelle',competences:'Compétences',formation:'Formation'};
+export const labels={profil:'Profil',experiences:'Expérience professionnelle',competences:'Compétences',formation:'Formation',langues:'Langues',certifications:'Certifications',projets:'Projets',interets:'Centres d\'intérêt'};
+const heading=z.string().min(1).max(70);
+export const headingsSchema=z.object({profil:heading,experiences:heading,competences:heading,formation:heading,langues:heading.default(labels.langues),certifications:heading.default(labels.certifications),projets:heading.default(labels.projets),interets:heading.default(labels.interets)}).strict();
+/** Shared order and formatting for preview, ATS text, Word and PDF. Empty sections stay hidden. */
+export function additionalSections(cv:CV,headings=labels){
+ const join=(parts:string[])=>parts.filter(value=>value.trim()).join(' - ');
+ return [
+  {title:headings.langues??labels.langues,items:(cv.langues??[]).map(l=>join([l.langue,l.niveau,l.certification,l.score,l.date]))},
+  {title:headings.certifications??labels.certifications,items:(cv.certifications??[]).map(c=>join([c.intitule,c.organisme,c.date,c.details]))},
+  {title:headings.projets??labels.projets,items:(cv.projets??[]).map(p=>join([p.nom,p.description,p.lien]))},
+  {title:headings.interets??labels.interets,items:cv.interets??[]},
+  ...(cv.autresSections??[]).map(s=>({title:s.titre||'Informations complémentaires',items:[s.contenu]})),
+ ].map(s=>({...s,items:s.items.filter(item=>item.trim())})).filter(s=>s.items.length);
+}
 export function toPlainText(cv:CV, headings=labels) {
   const blocks=[cv.nom,cv.titre,Object.values(cv.contact).filter(Boolean).join(' · ')].filter(Boolean);
   if(cv.profil)blocks.push(headings.profil.toUpperCase()+'\n'+cv.profil);
-  if(cv.experiences.length)blocks.push(headings.experiences.toUpperCase()+'\n'+cv.experiences.map(e=>[ [e.poste,e.entreprise].filter(Boolean).join(' — '),e.dates,...e.puces.map(p=>'• '+p)].filter(Boolean).join('\n')).join('\n\n'));
+  if(cv.experiences.length)blocks.push(headings.experiences.toUpperCase()+'\n'+cv.experiences.map(e=>[ [e.poste,e.entreprise].filter(Boolean).join(' - '),e.dates,...e.puces.map(p=>'• '+p)].filter(Boolean).join('\n')).join('\n\n'));
   if(cv.competences.length)blocks.push(headings.competences.toUpperCase()+'\n'+cv.competences.map(c=>'• '+c).join('\n'));
-  if(cv.formation.length)blocks.push(headings.formation.toUpperCase()+'\n'+cv.formation.map(f=>[f.intitule,f.etablissement,f.dates].filter(Boolean).join(' — ')).join('\n'));
+  if(cv.formation.length)blocks.push(headings.formation.toUpperCase()+'\n'+cv.formation.map(f=>[f.intitule,f.etablissement,f.dates,f.details??''].filter(Boolean).join(' - ')).join('\n'));
+  for(const section of additionalSections(cv,headings))blocks.push(section.title.toUpperCase()+'\n'+section.items.map(item=>'• '+item).join('\n'));
   return blocks.join('\n\n');
 }
 export function assertGroundedFields(cv:CV,source:string) {
   const norm=(s:string)=>s.normalize('NFKC').toLowerCase().replace(/\s/g,'');
   const src=norm(source);
-  const immutable=[cv.nom,...Object.values(cv.contact),...cv.experiences.flatMap(e=>[e.poste,e.entreprise,e.dates]),...cv.formation.flatMap(f=>[f.intitule,f.etablissement,f.dates])];
+  const immutable=[cv.nom,...Object.values(cv.contact),...cv.experiences.flatMap(e=>[e.poste,e.entreprise,e.dates]),...cv.formation.flatMap(f=>[f.intitule,f.etablissement,f.dates]),...(cv.langues??[]).flatMap(l=>Object.values(l)),...(cv.certifications??[]).flatMap(c=>[c.intitule,c.organisme,c.date]),...(cv.projets??[]).map(p=>p.lien)];
   if(immutable.some(s=>s&&!src.includes(norm(s))))throw new Error('Certaines informations ne correspondent pas exactement au CV source. Par sécurité, le résultat a été écarté. Réessaie.');
   const numbers=JSON.stringify(cv).match(/\d+(?:[.,]\d+)?/g)??[];
   if(numbers.some(n=>!source.includes(n)))throw new Error('Un chiffre non présent dans le CV a été détecté. Le résultat a été écarté. Réessaie.');

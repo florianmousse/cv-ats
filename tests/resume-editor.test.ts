@@ -7,11 +7,11 @@ import {defaultPresentation} from '../lib/presentation';
 import {jobKeywords,moveItem,redo,remember,undo,updateCV} from '../lib/resume-editor';
 import {createCVBlob,createDefinition} from '../lib/pdf';
 
-const cv:CV={nom:'Camille Exemple',titre:'Développeuse web',contact:{ville:'Lyon',telephone:'',email:'camille@example.test',portfolio:''},profil:'Développement d’applications web.',experiences:[{poste:'Développeuse',entreprise:'Studio Exemple',dates:'2022 – 2025',puces:['Créer des interfaces React.']}],competences:['React','TypeScript'],formation:[]};
+const cv:CV={nom:'Camille Exemple',titre:'Développeuse web',contact:{ville:'Lyon',telephone:'',email:'camille@example.test',portfolio:''},profil:'Développement d\'applications web.',experiences:[{poste:'Développeuse',entreprise:'Studio Exemple',dates:'2022 – 2025',puces:['Créer des interfaces React.']}],competences:['React','TypeScript'],formation:[]};
 
 test('editing, reordering, undo and redo preserve immutable drafts and branch history',()=>{
- const edited=updateCV(cv,{profil:'Conception et maintenance d’interfaces web.'});
- assert.equal(cv.profil,'Développement d’applications web.');
+ const edited=updateCV(cv,{profil:'Conception et maintenance d\'interfaces web.'});
+ assert.equal(cv.profil,'Développement d\'applications web.');
  let state=remember({past:[],present:cv,future:[]},edited);state=remember(state,{...edited,titre:'Développement front-end'});
  assert.equal(undo(state).present.titre,cv.titre);assert.deepEqual(redo(undo(state)),state);
  assert.equal(remember(undo(state),{...edited,nom:'Autre nom'}).future.length,0);

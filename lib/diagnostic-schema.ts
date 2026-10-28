@@ -2,8 +2,8 @@ import {z} from 'zod';
 
 export const diagnosticCategories={
  orthographe:'Orthographe et grammaire',typographie:'Typographie du texte',densite:'Volume et précision',
- formulations:'Phrases d’expérience',realisations:'Réalisations et preuves',structure:'Rubriques et titre',
- chronologie:'Dates et cohérence',competences:'Compétences et outils',adequation:'Adéquation à l’offre',clarte:'Clarté et répétitions',
+ formulations:'Phrases d\'expérience',realisations:'Réalisations et preuves',structure:'Rubriques et titre',
+ chronologie:'Dates et cohérence',competences:'Compétences et outils',adequation:'Adéquation à l\'offre',clarte:'Clarté et répétitions',
 } as const;
 export const categorySchema=z.enum(['orthographe','typographie','densite','formulations','realisations','structure','chronologie','competences','adequation','clarte']);
 export const requirementCategories={technique:'Technologies et outils',version:'Versions',experience:'Expérience demandée',mission:'Missions',qualite:'Qualités',langue:'Langues',contexte:'Contexte'} as const;
@@ -24,3 +24,5 @@ export const mechanicalCheckSchema=z.object({id:z.enum(mechanicalIds),label:z.st
 export type MechanicalCheck=z.infer<typeof mechanicalCheckSchema>;
 const points=z.number().int().min(0).max(20);
 export const scoreDetailsSchema=z.object({method:z.enum(['cvats-2','cvats-3']),dimensions:z.object({structure:points,impact:points,ats:points,clarte:points,completude:points}).strict(),qualitativeComplete:z.boolean(),rejectedSuggestions:z.number().int().nonnegative()}).strict();
+
+export const languageCheckSchema=z.object({code:z.string().max(60),status:z.enum(['info','attention']),title:z.string().max(300),excerpt:z.string().max(40000),detail:z.string().max(3000)}).strict();

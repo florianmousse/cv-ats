@@ -12,6 +12,7 @@ const fixture = {
   profil: 'Développeuse web React.',
   experiences: [{ poste: 'Développeuse web', entreprise: 'Entreprise Exemple', dates: '2022 – 2025', puces: ['Maintenir 3 applications React.'] }],
   competences: ['React'], formation: [],
+  langues:[{langue:'Allemand',niveau:'Bilingue',certification:'',score:'',date:''}],interets:['Hockey en club'],projets:[{nom:'Projet Exemple',description:'Portail associatif',lien:'https://exemple.test'}],autresSections:[{titre:'Qualités',contenu:'Autonome'}],
 };
 const settings = { apiKey: 'test-only-key', model: 'gemini-3.5-flash-lite' };
 const signal = new AbortController().signal;
@@ -108,7 +109,7 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: false, titres: labels }));
     assert.equal((await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'))).status, 422);
     count=0;
-    const letter={je:'Je maintiens trois applications React au sein d’Entreprise Exemple. Cette expérience me donne un point d’appui concret pour vos missions de maintenance.',vous:'Votre annonce met l’accent sur la maintenance des applications React. Ce travail de continuité et d’amélioration correspond au type de développement auquel je souhaite contribuer.',nous:'Nous pourrions échanger sur les applications à maintenir et sur la manière dont mon expérience peut répondre à ces besoins. Je vous remercie de l’attention portée à ma candidature.'};
+    const letter={je:'Je maintiens trois applications React au sein d\'Entreprise Exemple. Cette expérience me donne un point d\'appui concret pour vos missions de maintenance.',vous:'Votre annonce met l\'accent sur la maintenance des applications React. Ce travail de continuité et d\'amélioration correspond au type de développement auquel je souhaite contribuer.',nous:'Nous pourrions échanger sur les applications à maintenir et sur la manière dont mon expérience peut répondre à ces besoins. Je vous remercie de l\'attention portée à ma candidature.'};
     const research={company:'Entreprise Cible',excerpt:'Entreprise Cible présente un nouveau portail de suivi des demandes.',url:'https://entreprise.example/actualites/portail',date:'2026-09-01'};
     globalThis.fetch=stub(()=>success(++count===1?letter:{fidele:true,specifique:true}));
     const letterResponse=await POST(request('letter','Poste de développeuse web React : maintenance des applications.',{companyResearch:research}));

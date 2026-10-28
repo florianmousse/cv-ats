@@ -18,15 +18,15 @@ Docker, Git / Gitlab / Github
 Travailler en équipe
 LANGUES
 Anglais niveau B2 (930/990 TOEIC - 2023)
-CENTRES D’INTÉRÊT
+CENTRES D'INTÉRÊT
 Curieux des nouvelles techonologies
 EXPÉRIENCES
 DÉVELOPPEUR LOGICIEL
 Entreprise Exemple | 50 semaines - 2023/2024
 Conception et développement front et back de
 nouvelles fonctionnalités
-Corrections d’anomalies suite aux phases
-d’homologation et de recette (PHPUnit, Behat)
+Corrections d'anomalies suite aux phases
+d'homologation et de recette (PHPUnit, Behat)
 Mise à jour des spécifications techniques et
 fonctionnelles
 Contacts avec le client
@@ -35,19 +35,19 @@ Autre entreprise | 11 semaines - 2021
 Développement et optimisation de modules
 Compréhension du besoin utilisateur
 Programmation orientée objet, base de données
-et réalisation de l’interface
+et réalisation de l'interface
 FORMATION
 Diplôme informatique - 2024
 QUALITÉS
 Autonome, organisé`;
 export const sampleJob=`Missions : Développement, Intégration, Accompagnement des développeurs.
-Minimum 5 ans d’expérience sur les technologies & frameworks :
-Front-end : RxJS, JavaScript, TypeScript, ReactJS ou Angular avec un minimum de 2 ans d’expérience en Angular 14 minimum.
-Back-end : Spring Boot, Hibernate, Junit, Java avec un minimum de 2 ans d’expérience sur Java 17.
+Minimum 5 ans d'expérience sur les technologies & frameworks :
+Front-end : RxJS, JavaScript, TypeScript, ReactJS ou Angular avec un minimum de 2 ans d'expérience en Angular 14 minimum.
+Back-end : Spring Boot, Hibernate, Junit, Java avec un minimum de 2 ans d'expérience sur Java 17.
 Process CI/CI : Git, Maven, Jenkins, Pipeline multibranches, Nexus (ou équivalent).
-Autonomie et rigueur ; adaptation, esprit d’équipe ; analyse et synthèse ; anglais.
+Autonomie et rigueur ; adaptation, esprit d'équipe ; analyse et synthèse ; anglais.
 Avantages : 27 jours de congés, télétravail, actionnariat.`;
-const sparse:Scan={score:80,pointsForts:[],problemes:[{severite:'faible',texte:'L’analyse textuelle ne permet pas de vérifier la mise en page visuelle (couleurs, polices, colonnes).'}],motsClesManquants:[],recommandations:[]};
+const sparse:Scan={score:80,pointsForts:[],problemes:[{severite:'faible',texte:'L\'analyse textuelle ne permet pas de vérifier la mise en page visuelle (couleurs, polices, colonnes).'}],motsClesManquants:[],recommandations:[]};
 
 test('sparse model output still yields concrete spelling, typography and experience findings',()=>{
  const result=enrichScan(sparse,sampleCV,sampleJob);
@@ -74,7 +74,7 @@ test('line wrapping is reconstructed before short or long experience checks',()=
 test('job extraction includes missing technologies and versions without related-skill false positives',()=>{
  const result=enrichScan(sparse,sampleCV,sampleJob);
  for(const term of ['RxJS','TypeScript','React','Spring Boot','Hibernate','JUnit','Maven','Jenkins','Pipeline multibranches','Nexus','Angular 14','Java 17'])assert.ok(result.motsClesManquants.includes(term),term);
- for(const term of ['Java','JavaScript','Angular','Git','Anglais','Autonomie','Esprit d’équipe'])assert.ok(!result.motsClesManquants.includes(term),term);
+ for(const term of ['Java','JavaScript','Angular','Git','Anglais','Autonomie','Esprit d\'équipe'])assert.ok(!result.motsClesManquants.includes(term),term);
  assert.equal(hasKeyword('React Native','ReactJS'),false);assert.equal(hasKeyword('PHPUnit','JUnit'),false);
  assert.equal(hasKeyword('JavaScript','Java'),false);assert.equal(hasKeyword('AngularJS','Angular'),false);
  assert.equal(hasKeyword('React.js','ReactJS'),true);assert.equal(hasKeyword('Git / Gitlab / Github','GitLab'),true);

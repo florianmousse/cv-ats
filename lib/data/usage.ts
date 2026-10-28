@@ -10,10 +10,10 @@ export function dataError(error: { message?: string; code?: string } | null) {
   const message = error.message ?? '';
   if (message.includes('CVATS_USER_QUOTA')) throw new PublicError('Ton quota mensuel pour la clé du site ne permet plus cette analyse. Ajoute ta clé Gemini dans Mon compte pour continuer, ou attends le renouvellement du quota.', 429);
   if (message.includes('CVATS_GLOBAL_QUOTA')) throw new PublicError('Le quota quotidien de la clé du site ne permet plus cette analyse. Ajoute ta clé Gemini dans Mon compte pour continuer, ou réessaie après minuit UTC.', 429);
-  if (message.includes('CVATS_FORBIDDEN')) throw new PublicError('Ce compte n’est pas autorisé à effectuer cette action.', 403);
+  if (message.includes('CVATS_FORBIDDEN')) throw new PublicError('Ce compte n\'est pas autorisé à effectuer cette action.', 403);
   if (message.includes('CVATS_SAVE_LIMIT')) throw new PublicError('Tu as atteint les 20 sauvegardes. Supprime une ancienne version pour en ajouter une.', 409);
   if (message.includes('CVATS_NOT_FOUND')) throw new PublicError('Compte introuvable.', 404);
-  if(message.includes('CVATS_INVALID'))throw new PublicError('Cette opération n’est pas disponible. Vérifie que la migration SQL 004 a été appliquée pour les lettres et la structuration du CV.',503);
+  if(message.includes('CVATS_INVALID'))throw new PublicError('Cette opération n\'est pas disponible. Vérifie que la migration SQL 004 a été appliquée pour les lettres et la structuration du CV.',503);
   throw new PublicError('Le service de sauvegardes et de suivi est indisponible. Vérifie notamment que les migrations SQL 001 à 004 ont été exécutées dans Supabase.', 503);
 }
 export async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T> {

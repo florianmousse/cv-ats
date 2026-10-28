@@ -24,7 +24,7 @@ export async function userFromToken(token: string, allowPasswordChange = false):
   const user = data.user;
   const metadata = user.app_metadata;
   if (metadata.cvats !== true || metadata.enabled !== true || !['admin', 'member'].includes(metadata.cvats_role)) {
-    throw new PublicError('Ce compte n’est pas autorisé à utiliser le site.', 403);
+    throw new PublicError('Ce compte n\'est pas autorisé à utiliser le site.', 403);
   }
   // JWT signature was verified above. Comparing the issued version with live
   // metadata revokes old access tokens after disable/reset/logout/password change.
@@ -34,7 +34,7 @@ export async function userFromToken(token: string, allowPasswordChange = false):
   if (typeof metadata.access_version !== 'string' || !metadata.access_version || issued.access_version !== metadata.access_version) {
     throw new PublicError('Cet accès a été révoqué. Reconnecte-toi.', 401);
   }
-  if (!allowPasswordChange && metadata.must_change_password === true) throw new PublicError('Change ton mot de passe avant d’utiliser le site.', 428);
+  if (!allowPasswordChange && metadata.must_change_password === true) throw new PublicError('Change ton mot de passe avant d\'utiliser le site.', 428);
   return { id: user.id, email: user.email ?? '', role: metadata.cvats_role, mustChangePassword: metadata.must_change_password === true };
 }
 export async function requireUser(req: Request, allowPasswordChange = false) {
@@ -42,6 +42,6 @@ export async function requireUser(req: Request, allowPasswordChange = false) {
 }
 export async function requireAdmin(req: Request) {
   const user = await requireUser(req);
-  if (user.role !== 'admin') throw new PublicError('Cet espace est réservé à l’administrateur.', 403);
+  if (user.role !== 'admin') throw new PublicError('Cet espace est réservé à l\'administrateur.', 403);
   return user;
 }

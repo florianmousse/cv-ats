@@ -9,5 +9,5 @@ export async function bodyOf(req: Request) {
 export function authError(error: unknown) {
   if (error instanceof PublicError) return json({ error: error.message }, error.status);
   if (error instanceof z.ZodError) return json({ error: 'Vérifie les champs du formulaire (adresse e-mail valide, mot de passe de 12 à 128 caractères).' }, 400);
-  return json({ error: 'L’opération n’a pas abouti. Réessaie.' }, 503);
+  return json({ error: 'L\'opération n\'a pas abouti. Réessaie.' }, 503);
 }

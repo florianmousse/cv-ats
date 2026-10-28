@@ -7,7 +7,7 @@ export async function GET(req:Request){try{const user=await requireUser(req);ret
 export async function PUT(req:Request){try{
  checkOrigin(req);const user=await requireUser(req);
  const parsed=personalKeySchema.safeParse(await bodyOf(req));
- if(!parsed.success)throw new PublicError('Vérifie la clé Gemini et le nom du modèle. Ne colle pas de commande, d’URL ou d’espace dans la clé.');
+ if(!parsed.success)throw new PublicError('Vérifie la clé Gemini et le nom du modèle. Ne colle pas de commande, d\'URL ou d\'espace dans la clé.');
  await savePersonalKey(user.id,parsed.data.apiKey,parsed.data.model);
  return json({ok:true}); // No plaintext, ciphertext or upstream validation response.
 }catch(error){return authError(error);}}
