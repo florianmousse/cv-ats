@@ -77,3 +77,6 @@
 .template-executive .resume-identity{text-align:center}.template-executive h3{border-bottom:1px solid var(--resume-accent);padding-bottom:5px}
 .mini-compact{gap:3px}.mini-accent i:nth-child(2),.mini-accent i:nth-child(4){height:5px;background:#d3e3d8}.mini-executive i:first-child{margin:auto}.mini-executive i:nth-child(3){background:#718d65}
 @media(max-width:760px){.keyword-groups-wide .keyword-chips{grid-template-columns:repeat(2,minmax(0,1fr))}.keyword-groups-wide .keyword-chips>span{font-size:11px;padding:9px}.resume-setting select{font-size:16px}.fit-actions button{flex:1}.pdf-layout-status{padding:12px}}
+
+/* The desktop editor scrolls through the full height available beside the preview. */
+@media(min-width:761px){.builder-sidebar{display:grid;grid-template-rows:auto minmax(0,1fr)}.builder-fields{min-height:0;max-height:none;contain:size}}

@@ -1,11 +1,13 @@
 import {z} from 'zod';
+import {normalizeLetterTypography,letterTypographyInstructions} from './letter-typography';
 import {emptyCompanyResearch,type CompanyResearch} from './company-research';
 export type AnalysisMode='scan'|'optimize'|'structure'|'letter';
 export const letterSchema=z.object({text:z.string().trim().min(80).max(16000)}).strict();
-const paragraph=z.string().trim().min(40).max(5000).transform(value=>value.replace(/\s+/g,' '));
+const paragraph=z.string().trim().min(40).max(5000).transform(value=>normalizeLetterTypography(value.replace(/\s+/g,' ')));
 export const letterSectionsSchema=z.object({je:paragraph,vous:paragraph,nous:paragraph}).strict();
 export function composeLetter(sections:z.infer<typeof letterSectionsSchema>){return `Madame, Monsieur,\n\n${sections.je}\n\n${sections.vous}\n\n${sections.nous}`;}
-export const letterEditorialInstructions=`Rédige exactement trois paragraphes de corps dans l'ordre JE, VOUS, NOUS, sans afficher ces titres.
+export const letterEditorialInstructions=`${letterTypographyInstructions}
+Rédige exactement trois paragraphes de corps dans l'ordre JE, VOUS, NOUS, sans afficher ces titres.
 JE : commence par une contribution concrète du CV reliée au poste visé ; utilise un ou deux exemples précis (action, outil, livrable réellement mentionné). Ne déroule pas un résumé chronologique du CV et ne transforme pas un manque d'expérience en expertise.
 VOUS : explique ce qui attire le candidat dans un besoin ou projet identifiable de CET employeur. Utilise l'annonce, sa motivation et, si pertinent, l'extrait d'actualité fourni. Relie ce fait au poste au lieu de faire l'éloge de l'entreprise. Si la source ne concerne pas clairement cet employeur ou n'a aucun lien utile avec la candidature, ne l'utilise pas. Ne déduis aucun fait du seul nom de l'entreprise, du lien ou de tes souvenirs. Sans source exploitable, appuie ce paragraphe sur une mission précise de l'annonce.
 NOUS : propose une contribution réaliste au besoin cité à partir des capacités démontrées, puis un échange ; termine ce paragraphe par une courte formule de politesse. N'annonce ni résultat garanti ni compétence inventée. Évite de répéter les deux autres paragraphes.
