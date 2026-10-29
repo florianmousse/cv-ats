@@ -108,6 +108,8 @@ test('Analysis route: missing key, scan without job, optimization and rejected a
     count = 0;
     globalThis.fetch = stub(() => success(++count === 1 ? fixture : { fidele: false, titres: labels }));
     assert.equal((await POST(request('optimize', 'Poste de développeuse web React : maintenance des applications.'))).status, 422);
+    count=0;globalThis.fetch=stub(()=>success(++count===1?{...fixture,langues:[],interets:[],projets:[],autresSections:[]}:{fidele:true,titres:labels}));
+    const recoveredResponse=await POST(request('structure'));assert.equal(recoveredResponse.status,200);const recovered=(await recoveredResponse.json()).data;assert.ok(recovered.interets.length>0);assert.ok(recovered.langues.length>0);assert.equal(count,2);
     count=0;
     const letter={je:'Je maintiens trois applications React au sein d\'Entreprise Exemple. Cette expérience me donne un point d\'appui concret pour vos missions de maintenance.',vous:'Votre annonce met l\'accent sur la maintenance des applications React. Ce travail de continuité et d\'amélioration correspond au type de développement auquel je souhaite contribuer.',nous:'Nous pourrions échanger sur les applications à maintenir et sur la manière dont mon expérience peut répondre à ces besoins. Je vous remercie de l\'attention portée à ma candidature.'};
     const research={company:'Entreprise Cible',excerpt:'Entreprise Cible présente un nouveau portail de suivi des demandes.',url:'https://entreprise.example/actualites/portail',date:'2026-09-01'};

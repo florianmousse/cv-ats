@@ -143,3 +143,7 @@ Score toujours visible (indicatif si relecture incomplète), corrections orthogr
 ### Rubriques et langues - 1.9.0
 
 L'éditeur, les sauvegardes et les exports conservent désormais langues, certifications, projets, centres d'intérêt, rubriques libres et précisions de formation. Les contrôles linguistiques distinguent niveau déclaré et certification ; ils vérifient la cohérence des scores TOEIC L&R et des dates, sans authentifier les attestations ni convertir « bilingue » en C2. [Détails et sources officielles](docs/LANGUES-ET-RUBRIQUES.md). Aucune migration supplémentaire après 004.
+
+### Mise en page et récupération - 1.10.0
+
+Grille de termes élargie, six modèles, liens PDF cliquables, pagination automatique et réglages réversibles pour réduire la longueur. Les anciens brouillons peuvent récupérer les rubriques manquantes depuis leur source. Détails et limites : [mise en page](docs/MISE-EN-PAGE.md).

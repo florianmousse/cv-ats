@@ -1,5 +1,6 @@
 import {enrichScan,localDiagnostics} from '@/lib/diagnostic';
 import {scanPrompt} from '@/lib/scan-prompt';
+import {recoverSections} from '@/lib/recover-sections';
 import {verifyImportProof} from '@/lib/import-proof';
 import {letterPrompt,letterSchema,letterSectionsSchema,composeLetter,letterAuditPrompt} from '@/lib/candidature-prompts';
 import {companyResearchSchema,validatedCompanyResearchSchema,emptyCompanyResearch} from '@/lib/company-research';
@@ -45,7 +46,7 @@ export async function POST(req:Request){
         const result=enrichScan(scanSchema.parse(raw),cv,job,verifyImportProof(parsed.data.importProof,user.id,cv));
         succeeded=true;return json({kind:'scan',data:result,keySource:settings.source});
       }
-      const result=cvSchema.parse(raw);assertGroundedFields(result,cv);
+      const result=recoverSections(cvSchema.parse(raw),cv,true).data;assertGroundedFields(result,cv);
       const audit=await ask(base+'Refuse toute suppression d\'information utile du CV source, notamment les langues, certifications, projets, intérêts, qualités et coordonnées. Refuse toute conversion de bilingue en C2 ou tout niveau certifié ajouté. '+`Tu vérifies une proposition de CV contre la source. Chaque affirmation doit être explicitement justifiée par le CV SOURCE, jamais par l'annonce. Refuse toute compétence, niveau, responsabilité, résultat, causalité, durée ou profil ajouté ou amplifié, même plausible. Autorise uniquement des reformulations fidèles et synonymes équivalents. Refuse toute perte ou modification de dates. Réponds {"fidele":boolean,"titres":{"profil":string,"experiences":string,"competences":string,"formation":string,"langues":string,"certifications":string,"projets":string,"interets":string}}. Les titres sont les traductions standard de Profil / Expérience professionnelle / Compétences / Formation / Langues / Certifications / Projets / Centres d'intérêt dans la langue de l'annonce.`,{source:cv,proposition:result,annonce:mode==='structure'?'':job});
       const checked=z.object({fidele:z.boolean(),titres:headingsSchema}).parse(audit);
       if(!checked.fidele)throw new PublicError('La vérification de fidélité a détecté une reformulation trop éloignée du CV. Le résultat a été écarté. Réessaie.',422);

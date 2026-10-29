@@ -61,3 +61,19 @@
 .company-research{margin:20px 0;padding:16px;border:1px solid #dce6d5;border-radius:8px;background:#f8faf5}.company-research input{width:100%;min-width:0;box-sizing:border-box;padding:12px;border:1px solid #cbd9c5;border-radius:8px;background:white;font:16px Arial,sans-serif;color:#344c35}.company-research a{overflow-wrap:anywhere}.company-research textarea{min-height:120px}
 
 .language-review{padding:12px 0;font-size:12px;line-height:1.7;overflow-wrap:anywhere}.language-review details{margin:10px 0}.language-review summary{cursor:pointer}.language-review blockquote{margin:8px 0;padding:8px;border-left:2px solid #bccdb9}.language-review p{white-space:normal}.language-review ul{padding-left:18px}
+.keyword-groups-wide{grid-template-columns:minmax(0,1fr)}
+.keyword-groups-wide .keyword-chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px}
+.keyword-groups-wide .keyword-chips>span{min-width:0;overflow-wrap:anywhere;padding:12px}
+.resume-setting{display:grid;gap:8px;margin-top:20px;font-size:12px;color:#536c49}
+.resume-setting select{padding:9px;border:1px solid #cbd9c5;border-radius:6px;background:white}
+.pdf-layout-status{padding:12px 18px;border-bottom:1px solid #dce5d5;background:#f1f6ef;color:#42643b;font-size:12px;line-height:1.7}
+.pdf-layout-status p{margin:0 0 7px}.pdf-layout-status p:first-child{font-weight:600}.pdf-layout-status small{display:block;margin-top:10px}
+.pdf-overflow{background:#fff7e7;color:#725a2b}.fit-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.fit-actions button{padding:7px 10px;border:1px solid #ddcba6;border-radius:6px;background:white;font-size:11px;color:#705c32}
+.recovery-notice{padding:15px;background:#edf5ea;font-size:12px;line-height:1.8}.recovery-notice small{display:block;margin-top:10px}
+.resume-sheet{font-size:var(--resume-font,12px)}.resume-sheet h4{font-size:1em}.resume-sheet a{color:inherit;text-decoration:underline;overflow-wrap:anywhere}
+.resume-sheet.margins-narrow{padding:28px 26px}.resume-sheet.template-compact{line-height:1.4}.template-compact section{margin-top:14px}.template-compact .resume-entry{margin-bottom:8px}.template-compact li{margin-bottom:3px}
+.template-accent h3{background:#eef2f0;padding:3px 6px}.template-accent .resume-identity h2{color:var(--resume-accent)}
+.template-executive .resume-identity{text-align:center}.template-executive h3{border-bottom:1px solid var(--resume-accent);padding-bottom:5px}
+.mini-compact{gap:3px}.mini-accent i:nth-child(2),.mini-accent i:nth-child(4){height:5px;background:#d3e3d8}.mini-executive i:first-child{margin:auto}.mini-executive i:nth-child(3){background:#718d65}
+@media(max-width:760px){.keyword-groups-wide .keyword-chips{grid-template-columns:repeat(2,minmax(0,1fr))}.keyword-groups-wide .keyword-chips>span{font-size:11px;padding:9px}.resume-setting select{font-size:16px}.fit-actions button{flex:1}.pdf-layout-status{padding:12px}}
